@@ -1,60 +1,459 @@
--- ALFA KADE production-oriented schema
-create extension if not exists pgcrypto;
-create table if not exists profiles (id uuid primary key references auth.users(id) on delete cascade, full_name text, phone text, national_id text, birth_date date, role text not null default 'user' check(role in('user','seller','admin')), created_at timestamptz not null default now());
-create table if not exists products (id uuid primary key default gen_random_uuid(), title text not null, slug text not null unique, description text, image_url text, category text, is_active boolean not null default true, created_by uuid references profiles(id), created_at timestamptz not null default now(), updated_at timestamptz not null default now());
-create index if not exists products_title_idx on products using gin(to_tsvector('simple',title));
-create index if not exists products_category_idx on products(category);
-create table if not exists sellers (id uuid primary key default gen_random_uuid(), owner_id uuid references profiles(id) on delete set null, name text not null, website_url text, is_active boolean not null default true, created_at timestamptz not null default now());
-create table if not exists offers (id uuid primary key default gen_random_uuid(), product_id uuid not null references products(id) on delete cascade, seller_id uuid not null references sellers(id) on delete cascade, price bigint not null check(price>=0), seller_url text, source_type text not null default 'direct' check(source_type in('website','direct')), is_active boolean not null default true, expires_at timestamptz, created_at timestamptz not null default now(), updated_at timestamptz not null default now(), unique(product_id,seller_id));
-create index if not exists offers_product_price_idx on offers(product_id,price);
-create table if not exists site_settings (id integer primary key check(id=1), new_product_fee bigint not null default 0, renewal_fee bigint not null default 200000, renewal_months integer not null default 6, max_products bigint not null default 10000000, max_sellers_per_product integer not null default 1000, support_email text not null default 'alphakade11@gmail.com', suggestions_email text not null default 'alphakade11@gmail.com', updated_at timestamptz not null default now());
-insert into site_settings(id) values(1) on conflict(id) do nothing;
-create table if not exists product_subscriptions (id uuid primary key default gen_random_uuid(), product_id uuid not null references products(id) on delete cascade, owner_id uuid not null references profiles(id) on delete cascade, started_at timestamptz not null default now(), expires_at timestamptz, amount_paid bigint not null default 0, status text not null default 'active' check(status in('active','expired','pending','cancelled')));
+-- ============================================
+-- ALFA KADE / آلفا کده
+-- Supabase Database Schema
+-- ============================================
 
--- Hard server-side limits: product price <= 500m by default, max 10m products, max 1000 offers per product.
-create or replace function enforce_alfa_limits() returns trigger language plpgsql as $$
-declare cfg record; seller_count integer; product_count bigint;
+create extension if not exists "pgcrypto";
+
+
+-- ============================================
+-- PROFILES
+-- ============================================
+
+create table if not exists public.profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  full_name text,
+  phone text,
+  national_id text,
+  birth_date date,
+  role text not null default 'user'
+    check (role in ('user', 'admin')),
+  created_at timestamptz not null default now()
+);
+
+
+-- ============================================
+-- PRODUCTS
+-- ============================================
+
+create table if not exists public.products (
+  id uuid primary key default gen_random_uuid(),
+
+  title text not null,
+  slug text not null unique,
+  category text not null,
+
+  image_url text,
+
+  created_at timestamptz not null default now()
+);
+
+
+-- ============================================
+-- SELLERS
+-- ============================================
+
+create table if not exists public.sellers (
+  id uuid primary key default gen_random_uuid(),
+
+  name text not null,
+  phone text not null,
+  national_id text,
+  birth_date date,
+
+  website text,
+
+  created_at timestamptz not null default now()
+);
+
+
+-- ============================================
+-- OFFERS / قیمت فروشندگان
+-- ============================================
+
+create table if not exists public.offers (
+  id uuid primary key default gen_random_uuid(),
+
+  product_id uuid not null
+    references public.products(id)
+    on delete cascade,
+
+  seller_id uuid not null
+    references public.sellers(id)
+    on delete cascade,
+
+  price bigint not null,
+
+  seller_url text,
+
+  source_type text not null default 'direct'
+    check (source_type in ('website', 'direct')),
+
+  created_at timestamptz not null default now(),
+
+  constraint offers_price_limit
+    check (price > 0 and price <= 500000000)
+);
+
+
+-- ============================================
+-- SITE SETTINGS
+-- ============================================
+
+create table if not exists public.site_settings (
+  key text primary key,
+  value text not null,
+  updated_at timestamptz not null default now()
+);
+
+
+-- ============================================
+-- PRODUCT SUBSCRIPTIONS
+-- ============================================
+
+create table if not exists public.product_subscriptions (
+  id uuid primary key default gen_random_uuid(),
+
+  product_id uuid not null
+    references public.products(id)
+    on delete cascade,
+
+  seller_id uuid not null
+    references public.sellers(id)
+    on delete cascade,
+
+  starts_at timestamptz not null default now(),
+
+  expires_at timestamptz not null,
+
+  created_at timestamptz not null default now()
+);
+
+
+-- ============================================
+-- DEFAULT SETTINGS
+-- ============================================
+
+insert into public.site_settings (key, value)
+values
+  ('new_product_fee', '0'),
+  ('renewal_fee', '200000'),
+  ('renewal_months', '6'),
+  ('max_products', '10000000'),
+  ('max_sellers_per_product', '1000'),
+  ('support_email', 'alphakade11@gmail.com'),
+  ('suggestions_email', 'alphakade11@gmail.com')
+on conflict (key) do nothing;
+
+
+-- ============================================
+-- INDEXES
+-- ============================================
+
+create index if not exists products_category_idx
+on public.products(category);
+
+create index if not exists products_title_idx
+on public.products(title);
+
+create index if not exists offers_product_id_idx
+on public.offers(product_id);
+
+create index if not exists offers_seller_id_idx
+on public.offers(seller_id);
+
+create index if not exists offers_price_idx
+on public.offers(price);
+
+create index if not exists sellers_phone_idx
+on public.sellers(phone);
+
+
+-- ============================================
+-- PRICE LIMIT
+-- حداکثر قیمت: 500 میلیون تومان
+-- ============================================
+
+create or replace function public.check_offer_price()
+returns trigger
+language plpgsql
+as $$
 begin
- select * into cfg from site_settings where id=1;
- if cfg is null then raise exception 'Site settings are not initialized'; end if;
- if tg_table_name='offers' then
-   if new.price > 500000000 then raise exception 'PRICE_LIMIT: product price cannot exceed 500,000,000 tomans'; end if;
-   if (select count(*) from offers where product_id=new.product_id and id<>coalesce(new.id,'00000000-0000-0000-0000-000000000000'::uuid)) >= cfg.max_sellers_per_product then raise exception 'SELLER_LIMIT: maximum sellers reached'; end if;
- end if;
- if tg_table_name='products' then
-   select count(*) into product_count from products;
-   if product_count >= cfg.max_products then raise exception 'PRODUCT_LIMIT: maximum products reached'; end if;
- end if;
- return new;
-end $$;
-drop trigger if exists trg_alfa_offer_limits on offers;
-create trigger trg_alfa_offer_limits before insert or update on offers for each row execute function enforce_alfa_limits();
-drop trigger if exists trg_alfa_product_limits on products;
-create trigger trg_alfa_product_limits before insert on products for each row execute function enforce_alfa_limits();
+  if new.price <= 0 then
+    raise exception 'قیمت باید بیشتر از صفر باشد';
+  end if;
 
-alter table profiles enable row level security; alter table products enable row level security; alter table sellers enable row level security; alter table offers enable row level security; alter table site_settings enable row level security; alter table product_subscriptions enable row level security;
-drop policy if exists "public read active products" on products; create policy "public read active products" on products for select using(is_active=true);
-drop policy if exists "public read active sellers" on sellers; create policy "public read active sellers" on sellers for select using(is_active=true);
-drop policy if exists "public read active offers" on offers; create policy "public read active offers" on offers for select using(is_active=true);
-drop policy if exists "public read settings" on site_settings; create policy "public read settings" on site_settings for select using(true);
--- Authenticated users can maintain their own profile and create their own seller/product/offer records.
-create policy "own profile insert" on profiles for insert with check(auth.uid()=id);
-create policy "own profile update" on profiles for update using(auth.uid()=id) with check(auth.uid()=id);
-create policy "own seller insert" on sellers for insert with check(auth.uid()=owner_id);
-create policy "own product insert" on products for insert with check(auth.uid()=created_by);
-create policy "own product update" on products for update using(auth.uid()=created_by) with check(auth.uid()=created_by);
-create policy "own offer insert" on offers for insert with check(exists(select 1 from sellers s where s.id=seller_id and s.owner_id=auth.uid()));
-create policy "own offer update" on offers for update using(exists(select 1 from sellers s where s.id=seller_id and s.owner_id=auth.uid()));
-create policy "own subscriptions" on product_subscriptions for select using(auth.uid()=owner_id);
+  if new.price > 500000000 then
+    raise exception 'قیمت نمی‌تواند بیشتر از 500000000 تومان باشد';
+  end if;
 
--- Storage bucket for product images. Public read, authenticated uploads.
-insert into storage.buckets(id,name,public) values('product-images','product-images',true) on conflict(id) do nothing;
-drop policy if exists "public product images" on storage.objects;
-create policy "public product images" on storage.objects for select using(bucket_id='product-images');
-drop policy if exists "authenticated product image upload" on storage.objects;
-create policy "authenticated product image upload" on storage.objects for insert to authenticated with check(bucket_id='product-images');
--- Only admins may change site settings. Make one user admin manually once in profiles.
-drop policy if exists "admin update settings" on site_settings;
-create policy "admin update settings" on site_settings for update using(exists(select 1 from profiles p where p.id=auth.uid() and p.role='admin')) with check(exists(select 1 from profiles p where p.id=auth.uid() and p.role='admin'));
-drop policy if exists "admin insert settings" on site_settings;
-create policy "admin insert settings" on site_settings for insert with check(exists(select 1 from profiles p where p.id=auth.uid() and p.role='admin'));
+  return new;
+end;
+$$;
+
+drop trigger if exists offer_price_limit_trigger
+on public.offers;
+
+create trigger offer_price_limit_trigger
+before insert or update on public.offers
+for each row
+execute function public.check_offer_price();
+
+
+-- ============================================
+-- PRODUCT LIMIT
+-- حداکثر 10 میلیون محصول
+-- ============================================
+
+create or replace function public.check_product_limit()
+returns trigger
+language plpgsql
+as $$
+declare
+  max_products_value bigint;
+  current_products bigint;
+begin
+  select coalesce(value::bigint, 10000000)
+  into max_products_value
+  from public.site_settings
+  where key = 'max_products';
+
+  select count(*)
+  into current_products
+  from public.products;
+
+  if current_products >= max_products_value then
+    raise exception 'ظرفیت ثبت محصول تکمیل شده است';
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists product_limit_trigger
+on public.products;
+
+create trigger product_limit_trigger
+before insert on public.products
+for each row
+execute function public.check_product_limit();
+
+
+-- ============================================
+-- SELLER LIMIT PER PRODUCT
+-- حداکثر 1000 فروشنده برای هر محصول
+-- ============================================
+
+create or replace function public.check_seller_limit()
+returns trigger
+language plpgsql
+as $$
+declare
+  max_sellers_value bigint;
+  current_sellers bigint;
+begin
+  select coalesce(value::bigint, 1000)
+  into max_sellers_value
+  from public.site_settings
+  where key = 'max_sellers_per_product';
+
+  select count(*)
+  into current_sellers
+  from public.offers
+  where product_id = new.product_id;
+
+  if current_sellers >= max_sellers_value then
+    raise exception 'ظرفیت فروشندگان این محصول تکمیل شده است';
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists seller_limit_trigger
+on public.offers;
+
+create trigger seller_limit_trigger
+before insert on public.offers
+for each row
+execute function public.check_seller_limit();
+
+
+-- ============================================
+-- STORAGE
+-- ============================================
+
+insert into storage.buckets (id, name, public)
+values ('product-images', 'product-images', true)
+on conflict (id) do nothing;
+
+
+-- ============================================
+-- ROW LEVEL SECURITY
+-- ============================================
+
+alter table public.profiles enable row level security;
+alter table public.products enable row level security;
+alter table public.sellers enable row level security;
+alter table public.offers enable row level security;
+alter table public.site_settings enable row level security;
+alter table public.product_subscriptions enable row level security;
+
+
+-- ============================================
+-- PRODUCTS POLICIES
+-- ============================================
+
+drop policy if exists "Products are publicly readable"
+on public.products;
+
+create policy "Products are publicly readable"
+on public.products
+for select
+using (true);
+
+
+drop policy if exists "Products can be created"
+on public.products;
+
+create policy "Products can be created"
+on public.products
+for insert
+with check (true);
+
+
+-- ============================================
+-- SELLERS POLICIES
+-- ============================================
+
+drop policy if exists "Sellers are publicly readable"
+on public.sellers;
+
+create policy "Sellers are publicly readable"
+on public.sellers
+for select
+using (true);
+
+
+drop policy if exists "Sellers can be created"
+on public.sellers;
+
+create policy "Sellers can be created"
+on public.sellers
+for insert
+with check (true);
+
+
+-- ============================================
+-- OFFERS POLICIES
+-- ============================================
+
+drop policy if exists "Offers are publicly readable"
+on public.offers;
+
+create policy "Offers are publicly readable"
+on public.offers
+for select
+using (true);
+
+
+drop policy if exists "Offers can be created"
+on public.offers;
+
+create policy "Offers can be created"
+on public.offers
+for insert
+with check (true);
+
+
+-- ============================================
+-- PROFILES POLICIES
+-- ============================================
+
+drop policy if exists "Users can read profiles"
+on public.profiles;
+
+create policy "Users can read profiles"
+on public.profiles
+for select
+using (true);
+
+
+drop policy if exists "Users can create profiles"
+on public.profiles;
+
+create policy "Users can create profiles"
+on public.profiles
+for insert
+with check (true);
+
+
+-- ============================================
+-- SITE SETTINGS POLICIES
+-- ============================================
+
+drop policy if exists "Settings can be read"
+on public.site_settings;
+
+create policy "Settings can be read"
+on public.site_settings
+for select
+using (true);
+
+
+drop policy if exists "Settings can be updated"
+on public.site_settings;
+
+create policy "Settings can be updated"
+on public.site_settings
+for update
+using (true)
+with check (true);
+
+
+drop policy if exists "Settings can be inserted"
+on public.site_settings;
+
+create policy "Settings can be inserted"
+on public.site_settings
+for insert
+with check (true);
+
+
+-- ============================================
+-- SUBSCRIPTIONS POLICIES
+-- ============================================
+
+drop policy if exists "Subscriptions can be read"
+on public.product_subscriptions;
+
+create policy "Subscriptions can be read"
+on public.product_subscriptions
+for select
+using (true);
+
+
+drop policy if exists "Subscriptions can be created"
+on public.product_subscriptions;
+
+create policy "Subscriptions can be created"
+on public.product_subscriptions
+for insert
+with check (true);
+
+
+-- ============================================
+-- STORAGE POLICIES
+-- ============================================
+
+drop policy if exists "Product images are publicly readable"
+on storage.objects;
+
+create policy "Product images are publicly readable"
+on storage.objects
+for select
+using (bucket_id = 'product-images');
+
+
+drop policy if exists "Product images can be uploaded"
+on storage.objects;
+
+create policy "Product images can be uploaded"
+on storage.objects
+for insert
+with check (bucket_id = 'product-images');
+
+
+-- ============================================
+-- DONE
+-- ============================================
