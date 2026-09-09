@@ -1,150 +1,111 @@
+"use client";
+
 import Link from "next/link";
 import {
   Smartphone,
   Laptop,
-  Monitor,
   Tablet,
-  Watch,
   Headphones,
-  Speaker,
+  Watch,
   Camera,
+  Speaker,
   Gamepad2,
   Tv,
   Refrigerator,
+  Shirt,
   ShoppingBag,
+  Search,
 } from "lucide-react";
 
 const categories = [
-  { name: "گوشی موبایل", icon: Smartphone },
-  { name: "کامپیوتر", icon: Monitor },
-  { name: "لپ‌تاپ", icon: Laptop },
-  { name: "تبلت", icon: Tablet },
-  { name: "ساعت هوشمند", icon: Watch },
-  { name: "هدفون و هندزفری", icon: Headphones },
-  { name: "اسپیکر", icon: Speaker },
-  { name: "دوربین", icon: Camera },
-  { name: "کنسول و بازی", icon: Gamepad2 },
-  { name: "تلویزیون", icon: Tv },
-  { name: "لوازم خانگی", icon: Refrigerator },
-  { name: "لوازم جانبی", icon: ShoppingBag },
+  { title: "گوشی موبایل", icon: Smartphone },
+  { title: "کامپیوتر", icon: Laptop },
+  { title: "لپ‌تاپ", icon: Laptop },
+  { title: "تبلت", icon: Tablet },
+  { title: "هدفون", icon: Headphones },
+  { title: "ساعت هوشمند", icon: Watch },
+  { title: "دوربین", icon: Camera },
+  { title: "اسپیکر", icon: Speaker },
+  { title: "کنسول و بازی", icon: Gamepad2 },
+  { title: "تلویزیون", icon: Tv },
+  { title: "لوازم خانگی", icon: Refrigerator },
+  { title: "پوشاک", icon: Shirt },
+  { title: "لوازم جانبی", icon: ShoppingBag },
 ];
 
 export default function ProductsPage() {
   return (
-    <div className="min-h-screen bg-[#070707] px-4 py-10">
-      <div className="mx-auto max-w-7xl">
-
-        {/* Header */}
-        <div className="mb-10 text-center">
-          <div className="mb-3 inline-block rounded-full border border-[#3a2e18] bg-[#0d0d0d] px-5 py-2 text-sm text-[#d8aa4d]">
+    <main className="min-h-screen bg-[#070707] px-4 py-10 text-white">
+      <div className="mx-auto max-w-6xl">
+        {/* عنوان */}
+        <div className="text-center">
+          <p className="text-sm text-[#d8aa4d]">
             ALFA KADE
-          </div>
+          </p>
 
-          <h1 className="text-3xl font-black text-white md:text-5xl">
-            همه محصولات
+          <h1 className="mt-2 text-3xl font-black md:text-4xl">
+            همه دسته‌بندی‌ها
           </h1>
 
-          <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-gray-500 md:text-base">
-            دسته‌بندی موردنظر خود را انتخاب کنید و قیمت محصولات را از
-            فروشندگان مختلف مقایسه کنید.
+          <p className="mx-auto mt-3 max-w-2xl text-sm leading-7 text-gray-400">
+            دسته‌بندی موردنظر خود را انتخاب کنید و محصولات آن را جستجو کنید.
           </p>
         </div>
 
-        {/* Search */}
-        <div className="mx-auto mb-10 max-w-3xl">
-          <form action="/search" className="relative">
-            <input
-              type="search"
-              name="q"
-              placeholder="نام محصول را جستجو کنید..."
-              className="w-full rounded-2xl border border-[#3a2e18] bg-[#101010] px-5 py-4 pr-5 text-right text-white outline-none placeholder:text-gray-600 focus:border-[#d8aa4d]"
-            />
+        {/* جستجو */}
+        <Link
+          href="/search"
+          className="mx-auto mt-8 flex max-w-2xl items-center gap-3 rounded-2xl border border-white/10 bg-[#101010] px-5 py-4 text-gray-500 transition hover:border-[#d8aa4d]/50 hover:text-gray-300"
+        >
+          <Search className="h-5 w-5 text-[#d8aa4d]" />
+          <span>جستجوی محصول...</span>
+        </Link>
 
-            <button
-              type="submit"
-              className="absolute left-2 top-1/2 -translate-y-1/2 rounded-xl px-5 py-2.5 text-sm font-bold text-black"
-              style={{ background: "#d8aa4d" }}
-            >
-              جستجو
-            </button>
-          </form>
+        {/* دسته‌بندی‌ها */}
+        <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+          {categories.map((category) => {
+            const Icon = category.icon;
+
+            return (
+              <Link
+                key={category.title}
+                href={`/search?q=${encodeURIComponent(category.title)}`}
+                className="group rounded-2xl border border-white/10 bg-[#101010] p-5 transition hover:-translate-y-1 hover:border-[#d8aa4d]/60 hover:bg-[#141414]"
+              >
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#d8aa4d]/10">
+                  <Icon className="h-6 w-6 text-[#d8aa4d] transition group-hover:scale-110" />
+                </div>
+
+                <h2 className="mt-4 font-bold text-white">
+                  {category.title}
+                </h2>
+
+                <p className="mt-2 text-xs text-gray-500">
+                  مشاهده محصولات
+                </p>
+              </Link>
+            );
+          })}
         </div>
 
-        {/* Categories */}
-        <div className="mb-12">
-          <h2 className="mb-5 text-xl font-bold text-white">
-            دسته‌بندی‌ها
+        {/* ثبت محصول */}
+        <div className="mt-12 rounded-3xl border border-[#d8aa4d]/25 bg-[#101010] p-7 text-center">
+          <h2 className="text-xl font-bold text-[#d8aa4d]">
+            محصولی پیدا نکردی؟
           </h2>
 
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-            {categories.map((category) => {
-              const Icon = category.icon;
+          <p className="mt-3 text-sm text-gray-400">
+            می‌توانی محصول جدید را در آلفا کده ثبت کنی.
+          </p>
 
-              return (
-                <Link
-                  key={category.name}
-                  href={`/search?q=${encodeURIComponent(category.name)}`}
-                  className="group rounded-2xl border border-[#2d2414] bg-[#0d0d0d] p-5 text-center transition hover:-translate-y-1 hover:border-[#d8aa4d] hover:bg-[#11100d]"
-                >
-                  <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-[#17130c] text-[#d8aa4d] transition group-hover:bg-[#d8aa4d] group-hover:text-black">
-                    <Icon size={24} />
-                  </div>
-
-                  <div className="text-sm font-bold text-gray-200 group-hover:text-[#d8aa4d]">
-                    {category.name}
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
+          <Link
+            href="/products/register"
+            className="mt-6 inline-flex rounded-xl bg-[#d8aa4d] px-7 py-3 font-bold text-black transition hover:bg-[#e8bd65]"
+          >
+            ثبت محصول جدید
+          </Link>
         </div>
-
-        {/* Product area */}
-        <section className="rounded-3xl border border-[#2d2414] bg-[#0b0b0b] p-6 md:p-8">
-          <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 className="text-2xl font-black text-white">
-                محصولات آلفا کده
-              </h2>
-
-              <p className="mt-2 text-sm text-gray-500">
-                محصولات ثبت‌شده در این بخش نمایش داده می‌شوند.
-              </p>
-            </div>
-
-            <Link
-              href="/products/register"
-              className="rounded-xl px-5 py-3 text-center text-sm font-bold text-black"
-              style={{ background: "#d8aa4d" }}
-            >
-              + ثبت محصول
-            </Link>
-          </div>
-
-          <div className="rounded-2xl border border-dashed border-[#3a2e18] bg-[#090909] px-5 py-12 text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#17130c] text-[#d8aa4d]">
-              <ShoppingBag size={30} />
-            </div>
-
-            <h3 className="text-lg font-bold text-gray-200">
-              هنوز محصولی نمایش داده نشده است
-            </h3>
-
-            <p className="mx-auto mt-2 max-w-md text-sm leading-7 text-gray-600">
-              اولین محصول را ثبت کنید تا در آلفا کده قرار بگیرد و
-              فروشندگان مختلف بتوانند قیمت آن را اضافه کنند.
-            </p>
-
-            <Link
-              href="/products/register"
-              className="mt-6 inline-block rounded-xl border border-[#d8aa4d] px-6 py-3 text-sm font-bold text-[#d8aa4d] transition hover:bg-[#d8aa4d] hover:text-black"
-            >
-              ثبت اولین محصول
-            </Link>
-          </div>
-        </section>
-
       </div>
-    </div>
+    </main>
   );
-            }
+              }
