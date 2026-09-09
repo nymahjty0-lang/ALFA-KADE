@@ -1,186 +1,171 @@
 "use client";
 
 import Link from "next/link";
-import { Search, User, Settings, Menu, X } from "lucide-react";
 import { useState } from "react";
+import {
+  Menu,
+  Search,
+  X,
+  User,
+  Settings,
+  Package,
+} from "lucide-react";
+
+const BASE_PATH = "/ALFA-KADE";
 
 export default function Header() {
   const [open, setOpen] = useState(false);
 
   return (
-    <header
-      style={{
-        background: "#050505",
-        borderBottom: "1px solid #2d2414",
-      }}
-      className="sticky top-0 z-50"
-    >
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3">
-        {/* Logo */}
+    <header className="sticky top-0 z-50 border-b border-[#d8aa4d]/20 bg-[#050505]/95 backdrop-blur">
+      <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4">
+        {/* لوگو */}
         <Link
           href="/"
-          className="flex shrink-0 items-center gap-3"
+          className="flex items-center gap-3"
           onClick={() => setOpen(false)}
         >
           <img
-            src="/alfa-cade.png"
+            src={`${BASE_PATH}/alfa-cade.png`}
             alt="آلفا کده"
             className="h-12 w-12 rounded-xl object-contain"
           />
 
           <div className="hidden sm:block">
-            <div
-              className="text-xl font-black tracking-wide"
-              style={{ color: "#d8aa4d" }}
-            >
-              آلفا کده
+            <div className="text-lg font-bold text-[#d8aa4d]">
+              ALFA KADE
             </div>
 
-            <div className="text-[11px] text-gray-400">
-              مقایسه و خرید هوشمند
+            <div className="text-[11px] text-gray-500">
+              سازنده: نیماحجتی
             </div>
           </div>
         </Link>
 
-        {/* Search */}
-        <div className="hidden max-w-xl flex-1 md:block">
-          <form action="/search" className="relative">
-            <input
-              type="search"
-              name="q"
-              placeholder="دنبال چه محصولی هستید؟"
-              className="w-full rounded-2xl border border-[#3a2e18] bg-[#101010] py-3 pr-12 pl-4 text-right text-sm text-white outline-none transition placeholder:text-gray-500 focus:border-[#d8aa4d]"
-            />
+        {/* منوی دسکتاپ */}
+        <nav className="hidden items-center gap-2 md:flex">
+          <Link
+            href="/"
+            className="rounded-lg px-4 py-2 text-sm text-gray-300 transition hover:bg-[#d8aa4d]/10 hover:text-[#d8aa4d]"
+          >
+            خانه
+          </Link>
 
-            <button
-              type="submit"
-              aria-label="جستجو"
-              className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-xl transition"
-              style={{
-                background: "#d8aa4d",
-                color: "#000",
-              }}
-            >
-              <Search size={18} />
-            </button>
-          </form>
-        </div>
-
-        {/* Desktop navigation */}
-        <nav className="hidden items-center gap-2 lg:flex">
           <Link
             href="/products"
-            className="rounded-xl px-4 py-2 text-sm text-gray-300 transition hover:bg-[#15120c] hover:text-[#d8aa4d]"
+            className="rounded-lg px-4 py-2 text-sm text-gray-300 transition hover:bg-[#d8aa4d]/10 hover:text-[#d8aa4d]"
           >
             همه محصولات
           </Link>
 
           <Link
             href="/products/register"
-            className="rounded-xl px-4 py-2 text-sm text-gray-300 transition hover:bg-[#15120c] hover:text-[#d8aa4d]"
+            className="rounded-lg px-4 py-2 text-sm text-gray-300 transition hover:bg-[#d8aa4d]/10 hover:text-[#d8aa4d]"
           >
             ثبت محصول
           </Link>
 
           <Link
-            href="/login"
-            className="flex items-center gap-2 rounded-xl border border-[#3a2e18] px-4 py-2 text-sm text-gray-200 transition hover:border-[#d8aa4d] hover:text-[#d8aa4d]"
-          >
-            <User size={17} />
-            ورود
-          </Link>
-
-          <Link
             href="/settings"
-            aria-label="تنظیمات"
-            className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#3a2e18] text-gray-300 transition hover:border-[#d8aa4d] hover:text-[#d8aa4d]"
+            className="rounded-lg px-4 py-2 text-sm text-gray-300 transition hover:bg-[#d8aa4d]/10 hover:text-[#d8aa4d]"
           >
-            <Settings size={18} />
+            تنظیمات
           </Link>
         </nav>
 
-        {/* Mobile menu button */}
-        <button
-          type="button"
-          aria-label="منو"
-          onClick={() => setOpen(!open)}
-          className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#3a2e18] text-gray-200 lg:hidden"
-        >
-          {open ? <X size={22} /> : <Menu size={22} />}
-        </button>
-      </div>
+        {/* دکمه‌های سمت چپ */}
+        <div className="flex items-center gap-2">
+          <Link
+            href="/search"
+            aria-label="جستجو"
+            className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-[#101010] text-gray-300 transition hover:border-[#d8aa4d]/50 hover:text-[#d8aa4d]"
+          >
+            <Search className="h-5 w-5" />
+          </Link>
 
-      {/* Mobile search */}
-      <div className="px-4 pb-3 md:hidden">
-        <form action="/search" className="relative">
-          <input
-            type="search"
-            name="q"
-            placeholder="جستجوی محصول..."
-            className="w-full rounded-2xl border border-[#3a2e18] bg-[#101010] py-3 pr-12 pl-4 text-right text-sm text-white outline-none placeholder:text-gray-500 focus:border-[#d8aa4d]"
-          />
+          <Link
+            href="/login"
+            aria-label="ورود"
+            className="hidden h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-[#101010] text-gray-300 transition hover:border-[#d8aa4d]/50 hover:text-[#d8aa4d] sm:flex"
+          >
+            <User className="h-5 w-5" />
+          </Link>
 
           <button
-            type="submit"
-            aria-label="جستجو"
-            className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-xl"
-            style={{
-              background: "#d8aa4d",
-              color: "#000",
-            }}
+            type="button"
+            aria-label="منو"
+            onClick={() => setOpen(!open)}
+            className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#d8aa4d]/30 bg-[#101010] text-[#d8aa4d] md:hidden"
           >
-            <Search size={18} />
+            {open ? (
+              <X className="h-6 w-6" />
+            ) : (
+              <Menu className="h-6 w-6" />
+            )}
           </button>
-        </form>
+        </div>
       </div>
 
-      {/* Mobile menu */}
+      {/* منوی موبایل */}
       {open && (
-        <div className="border-t border-[#2d2414] bg-[#080808] px-4 py-4 lg:hidden">
-          <div className="mx-auto flex max-w-7xl flex-col gap-2">
+        <div className="border-t border-[#d8aa4d]/20 bg-[#090909] px-4 py-4 md:hidden">
+          <div className="mx-auto max-w-7xl space-y-2">
+            <Link
+              href="/"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-3 rounded-xl px-4 py-3 text-gray-300 hover:bg-[#d8aa4d]/10 hover:text-[#d8aa4d]"
+            >
+              <Package className="h-5 w-5" />
+              خانه
+            </Link>
+
             <Link
               href="/products"
               onClick={() => setOpen(false)}
-              className="rounded-xl border border-[#211b10] px-4 py-3 text-right text-sm text-gray-200 hover:border-[#d8aa4d] hover:text-[#d8aa4d]"
+              className="flex items-center gap-3 rounded-xl px-4 py-3 text-gray-300 hover:bg-[#d8aa4d]/10 hover:text-[#d8aa4d]"
             >
+              <Package className="h-5 w-5" />
               همه محصولات
             </Link>
 
             <Link
               href="/products/register"
               onClick={() => setOpen(false)}
-              className="rounded-xl border border-[#211b10] px-4 py-3 text-right text-sm text-gray-200 hover:border-[#d8aa4d] hover:text-[#d8aa4d]"
+              className="flex items-center gap-3 rounded-xl px-4 py-3 text-gray-300 hover:bg-[#d8aa4d]/10 hover:text-[#d8aa4d]"
             >
+              <Package className="h-5 w-5" />
               ثبت محصول
+            </Link>
+
+            <Link
+              href="/search"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-3 rounded-xl px-4 py-3 text-gray-300 hover:bg-[#d8aa4d]/10 hover:text-[#d8aa4d]"
+            >
+              <Search className="h-5 w-5" />
+              جستجوی محصولات
             </Link>
 
             <Link
               href="/login"
               onClick={() => setOpen(false)}
-              className="rounded-xl border border-[#211b10] px-4 py-3 text-right text-sm text-gray-200 hover:border-[#d8aa4d] hover:text-[#d8aa4d]"
+              className="flex items-center gap-3 rounded-xl px-4 py-3 text-gray-300 hover:bg-[#d8aa4d]/10 hover:text-[#d8aa4d]"
             >
-              ورود به حساب
+              <User className="h-5 w-5" />
+              ورود
             </Link>
 
             <Link
               href="/settings"
               onClick={() => setOpen(false)}
-              className="rounded-xl border border-[#211b10] px-4 py-3 text-right text-sm text-gray-200 hover:border-[#d8aa4d] hover:text-[#d8aa4d]"
+              className="flex items-center gap-3 rounded-xl px-4 py-3 text-gray-300 hover:bg-[#d8aa4d]/10 hover:text-[#d8aa4d]"
             >
+              <Settings className="h-5 w-5" />
               تنظیمات
             </Link>
-
-            <div className="mt-3 border-t border-[#211b10] pt-3 text-center text-xs text-gray-500">
-              سازنده: نیماحجتی
-            </div>
           </div>
         </div>
       )}
-
-      {/* Creator */}
-      <div className="hidden border-t border-[#17130c] py-1 text-center text-[10px] text-gray-600 lg:block">
-        سازنده: نیماحجتی
-      </div>
     </header>
   );
-      }
+          }
