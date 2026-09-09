@@ -1,30 +1,53 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-:root { color-scheme: dark; }
-* { box-sizing: border-box; }
-html { direction: rtl; }
+:root {
+  --background: #070707;
+  --foreground: #ffffff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  direction: rtl;
+  scroll-behavior: smooth;
+}
+
 body {
   margin: 0;
+  background: #070707;
+  color: #ffffff;
+  font-family: Arial, Tahoma, sans-serif;
+}
+
+a {
+  text-decoration: none;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+::selection {
+  background: #d8aa4d;
+  color: #000;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
   background: #090909;
-  color: #f4f4f4;
-  font-family: Tahoma, Arial, sans-serif;
 }
-a { color: inherit; text-decoration: none; }
-button, input, select, textarea { font: inherit; }
-.gold-gradient {
-  background: linear-gradient(135deg, #b88322, #f6d77a 48%, #a56e13);
+
+::-webkit-scrollbar-thumb {
+  background: #80652f;
+  border-radius: 10px;
 }
-.gold-text {
-  background: linear-gradient(135deg, #fff1ae, #d9a83d);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+
+::-webkit-scrollbar-thumb:hover {
+  background: #d8aa4d;
 }
-.card {
-  border: 1px solid #2d2d2d;
-  background: linear-gradient(180deg, #171717, #101010);
-  border-radius: 18px;
-}
-.input{width:100%;border-radius:12px;border:1px solid #3f3f46;background:#090909;padding:14px;outline:none;color:#f4f4f4}.input:focus{border-color:#d9a83d}
