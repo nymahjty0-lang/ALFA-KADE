@@ -2,14 +2,10 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "export",
-
+  basePath: "/ALFA-KADE",
   images: {
     unoptimized: true,
   },
-
-  trailingSlash: true,
-
-  basePath: "/ALFA-KADE",
 };
 
 export default nextConfig;
