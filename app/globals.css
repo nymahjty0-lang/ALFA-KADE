@@ -1,4 +1,6 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
   --background: #070707;
@@ -26,6 +28,13 @@ a {
 }
 
 button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button,
 a {
   -webkit-tap-highlight-color: transparent;
 }
@@ -50,4 +59,35 @@ a {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #d8aa4d;
+}
+
+.gold-gradient {
+  background: linear-gradient(135deg, #b88322, #f6d77a 48%, #a56e13);
+}
+
+.gold-text {
+  background: linear-gradient(135deg, #fff1ae, #d9a83d);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.card {
+  border: 1px solid #2d2d2d;
+  background: linear-gradient(180deg, #171717, #101010);
+  border-radius: 18px;
+}
+
+.input {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid #3f3f46;
+  background: #090909;
+  padding: 14px;
+  outline: none;
+  color: #f4f4f4;
+}
+
+.input:focus {
+  border-color: #d9a83d;
 }
