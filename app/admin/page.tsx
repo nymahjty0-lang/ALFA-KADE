@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Save, Settings, ShieldCheck } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "../../lib/supabase";
 
 type SettingsState = {
   new_product_fee: string;
@@ -14,7 +14,7 @@ type SettingsState = {
   suggestions_email: string;
 };
 
-const defaults: SettingsState = {
+const defaultSettings: SettingsState = {
   new_product_fee: "0",
   renewal_fee: "200000",
   renewal_months: "6",
@@ -25,7 +25,9 @@ const defaults: SettingsState = {
 };
 
 export default function AdminPage() {
-  const [settings, setSettings] = useState<SettingsState>(defaults);
+  const [settings, setSettings] =
+    useState<SettingsState>(defaultSettings);
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -35,28 +37,47 @@ export default function AdminPage() {
   }, []);
 
   async function loadSettings() {
-    setLoading(true);
+    try {
+      const supabase = createClient();
 
-    const { data } = await supabase
-      .from("site_settings")
-      .select("key,value");
-
-    if (data) {
-      const next = { ...defaults };
-
-      for (const item of data) {
-        if (item.key in next) {
-          (next as Record<string, string>)[item.key] = item.value;
-        }
+      if (!supabase) {
+        setLoading(false);
+        return;
       }
 
-      setSettings(next);
-    }
+      const { data, error } = await supabase
+        .from("site_settings")
+        .select("key,value");
 
-    setLoading(false);
+      if (error) {
+        console.error(error);
+        setLoading(false);
+        return;
+      }
+
+      if (data) {
+        const loaded = { ...defaultSettings };
+
+        for (const item of data) {
+          if (item.key in loaded) {
+            (loaded as Record<string, string>)[item.key] =
+              String(item.value ?? "");
+          }
+        }
+
+        setSettings(loaded);
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
   }
 
-  function updateSetting(key: keyof SettingsState, value: string) {
+  function updateSetting(
+    key: keyof SettingsState,
+    value: string
+  ) {
     setSettings((current) => ({
       ...current,
       [key]: value,
@@ -67,197 +88,312 @@ export default function AdminPage() {
     setSaving(true);
     setMessage("");
 
-    const rows = Object.entries(settings).map(([key, value]) => ({
-      key,
-      value,
-    }));
+    try {
+      const supabase = createClient();
 
-    const { error } = await supabase
-      .from("site_settings")
-      .upsert(rows, { onConflict: "key" });
+      if (!supabase) {
+        setMessage("اتصال به دیتابیس برقرار نیست.");
+        setSaving(false);
+        return;
+      }
 
-    if (error) {
-      setMessage("ذخیره تنظیمات انجام نشد.");
-    } else {
-      setMessage("تنظیمات با موفقیت ذخیره شد.");
+      const rows = Object.entries(settings).map(
+        ([key, value]) => ({
+          key,
+          value,
+        })
+      );
+
+      const { error } = await supabase
+        .from("site_settings")
+        .upsert(rows, {
+          onConflict: "key",
+        });
+
+      if (error) {
+        console.error(error);
+        setMessage("ذخیره تنظیمات انجام نشد.");
+      } else {
+        setMessage("تنظیمات با موفقیت ذخیره شد.");
+      }
+    } catch (error) {
+      console.error(error);
+      setMessage("خطایی هنگام ذخیره تنظیمات رخ داد.");
+    } finally {
+      setSaving(false);
     }
-
-    setSaving(false);
   }
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#070707] px-4 py-12 text-white">
-        <div className="mx-auto max-w-4xl text-center text-gray-400">
-          در حال بارگذاری تنظیمات...
+      <main className="min-h-screen bg-[#070707] px-4 py-16 text-white">
+        <div className="mx-auto max-w-4xl text-center">
+          <p className="text-lg text-zinc-400">
+            در حال بارگذاری تنظیمات...
+          </p>
         </div>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-[#070707] px-4 py-10 text-white">
-      <div className="mx-auto max-w-4xl">
-        {/* عنوان */}
-        <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-[#d8aa4d]/30 bg-[#d8aa4d]/10">
-            <Settings className="h-8 w-8 text-[#d8aa4d]" />
+    <main className="min-h-screen bg-[#070707] px-4 py-8 text-white sm:px-6">
+      <div className="mx-auto max-w-5xl">
+
+        {/* Header */}
+        <div className="mb-8 rounded-3xl border border-[#2d2d2d] bg-gradient-to-b from-[#171717] to-[#0d0d0d] p-6 sm:p-8">
+
+          <div className="flex items-center gap-4">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#d8aa4d] text-black">
+              <Settings size={28} />
+            </div>
+
+            <div>
+              <h1 className="text-2xl font-bold sm:text-3xl">
+                پنل مدیریت آلفا کده
+              </h1>
+
+              <p className="mt-1 text-sm text-zinc-400">
+                مدیریت هزینه‌ها، محدودیت‌ها و اطلاعات سایت
+              </p>
+            </div>
           </div>
 
-          <h1 className="text-3xl font-bold text-[#d8aa4d]">
-            مدیریت آلفا کده
-          </h1>
-
-          <p className="mt-2 text-sm text-gray-400">
-            تنظیمات اصلی سایت را بدون تغییر کد مدیریت کنید.
-          </p>
+          <div className="mt-6 flex items-center gap-2 rounded-xl border border-[#3b3020] bg-[#15110a] p-4 text-sm text-[#e8c875]">
+            <ShieldCheck size={20} />
+            <span>
+              تغییرات این قسمت روی تنظیمات سایت اعمال می‌شود.
+            </span>
+          </div>
         </div>
 
-        {/* هزینه‌ها */}
-        <section className="mb-6 rounded-2xl border border-[#d8aa4d]/20 bg-[#101010] p-6">
-          <h2 className="mb-5 text-xl font-bold text-[#d8aa4d]">
-            هزینه‌ها
-          </h2>
+        {/* Settings */}
+        <div className="grid gap-6 md:grid-cols-2">
 
-          <div className="grid gap-5 md:grid-cols-2">
-            <Field
-              label="هزینه ثبت محصول جدید (تومان)"
-              value={settings.new_product_fee}
-              onChange={(v) => updateSetting("new_product_fee", v)}
-              type="number"
-            />
+          {/* Registration fee */}
+          <section className="rounded-3xl border border-[#2d2d2d] bg-[#111111] p-6">
+            <h2 className="mb-2 text-xl font-bold text-[#e2b957]">
+              هزینه ثبت محصول
+            </h2>
 
-            <Field
-              label="هزینه تمدید (تومان)"
-              value={settings.renewal_fee}
-              onChange={(v) => updateSetting("renewal_fee", v)}
-              type="number"
-            />
-
-            <Field
-              label="مدت تمدید (ماه)"
-              value={settings.renewal_months}
-              onChange={(v) => updateSetting("renewal_months", v)}
-              type="number"
-            />
-          </div>
-        </section>
-
-        {/* محدودیت‌ها */}
-        <section className="mb-6 rounded-2xl border border-[#d8aa4d]/20 bg-[#101010] p-6">
-          <h2 className="mb-5 text-xl font-bold text-[#d8aa4d]">
-            محدودیت‌های سایت
-          </h2>
-
-          <div className="grid gap-5 md:grid-cols-2">
-            <Field
-              label="حداکثر تعداد محصولات"
-              value={settings.max_products}
-              onChange={(v) => updateSetting("max_products", v)}
-              type="number"
-            />
-
-            <Field
-              label="حداکثر فروشنده برای هر محصول"
-              value={settings.max_sellers_per_product}
-              onChange={(v) =>
-                updateSetting("max_sellers_per_product", v)
-              }
-              type="number"
-            />
-          </div>
-
-          <div className="mt-5 rounded-xl border border-[#d8aa4d]/20 bg-black/30 p-4 text-sm leading-7 text-gray-400">
-            سقف قیمت هر محصول در سیستم:
-            <strong className="mx-1 text-[#d8aa4d]">
-              ۵۰۰,۰۰۰,۰۰۰ تومان
-            </strong>
-          </div>
-        </section>
-
-        {/* ارتباط */}
-        <section className="mb-6 rounded-2xl border border-[#d8aa4d]/20 bg-[#101010] p-6">
-          <h2 className="mb-5 text-xl font-bold text-[#d8aa4d]">
-            اطلاعات ارتباطی
-          </h2>
-
-          <div className="grid gap-5 md:grid-cols-2">
-            <Field
-              label="ایمیل پشتیبانی"
-              value={settings.support_email}
-              onChange={(v) => updateSetting("support_email", v)}
-              type="email"
-            />
-
-            <Field
-              label="ایمیل پیشنهادات"
-              value={settings.suggestions_email}
-              onChange={(v) => updateSetting("suggestions_email", v)}
-              type="email"
-            />
-          </div>
-        </section>
-
-        {/* امنیت */}
-        <div className="mb-6 flex items-start gap-3 rounded-2xl border border-[#d8aa4d]/20 bg-[#0d0d0d] p-5">
-          <ShieldCheck className="mt-1 h-6 w-6 shrink-0 text-[#d8aa4d]" />
-
-          <div>
-            <h3 className="font-bold text-white">
-              تنظیمات مدیریتی
-            </h3>
-
-            <p className="mt-1 text-sm leading-6 text-gray-400">
-              برای استفاده واقعی از پنل مدیریت، دسترسی مدیر باید در
-              Supabase تنظیم شود.
+            <p className="mb-5 text-sm text-zinc-500">
+              هزینه ثبت اولیه هر محصول به تومان
             </p>
-          </div>
+
+            <input
+              type="number"
+              min="0"
+              value={settings.new_product_fee}
+              onChange={(e) =>
+                updateSetting(
+                  "new_product_fee",
+                  e.target.value
+                )
+              }
+              className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-white outline-none focus:border-[#d8aa4d]"
+              placeholder="0"
+            />
+
+            <p className="mt-3 text-xs text-zinc-500">
+              مقدار پیش‌فرض: رایگان
+            </p>
+          </section>
+
+          {/* Renewal fee */}
+          <section className="rounded-3xl border border-[#2d2d2d] bg-[#111111] p-6">
+            <h2 className="mb-2 text-xl font-bold text-[#e2b957]">
+              هزینه تمدید
+            </h2>
+
+            <p className="mb-5 text-sm text-zinc-500">
+              مبلغ تمدید محصول به تومان
+            </p>
+
+            <input
+              type="number"
+              min="0"
+              value={settings.renewal_fee}
+              onChange={(e) =>
+                updateSetting(
+                  "renewal_fee",
+                  e.target.value
+                )
+              }
+              className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-white outline-none focus:border-[#d8aa4d]"
+              placeholder="200000"
+            />
+
+            <p className="mt-3 text-xs text-zinc-500">
+              مقدار پیش‌فرض: ۲۰۰٬۰۰۰ تومان
+            </p>
+          </section>
+
+          {/* Renewal period */}
+          <section className="rounded-3xl border border-[#2d2d2d] bg-[#111111] p-6">
+            <h2 className="mb-2 text-xl font-bold text-[#e2b957]">
+              مدت تمدید
+            </h2>
+
+            <p className="mb-5 text-sm text-zinc-500">
+              مدت اعتبار محصول بر اساس ماه
+            </p>
+
+            <input
+              type="number"
+              min="1"
+              value={settings.renewal_months}
+              onChange={(e) =>
+                updateSetting(
+                  "renewal_months",
+                  e.target.value
+                )
+              }
+              className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-white outline-none focus:border-[#d8aa4d]"
+              placeholder="6"
+            />
+
+            <p className="mt-3 text-xs text-zinc-500">
+              مقدار پیش‌فرض: ۶ ماه
+            </p>
+          </section>
+
+          {/* Max products */}
+          <section className="rounded-3xl border border-[#2d2d2d] bg-[#111111] p-6">
+            <h2 className="mb-2 text-xl font-bold text-[#e2b957]">
+              حداکثر تعداد محصولات
+            </h2>
+
+            <p className="mb-5 text-sm text-zinc-500">
+              حداکثر تعداد محصول قابل ثبت در سایت
+            </p>
+
+            <input
+              type="number"
+              min="1"
+              value={settings.max_products}
+              onChange={(e) =>
+                updateSetting(
+                  "max_products",
+                  e.target.value
+                )
+              }
+              className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-white outline-none focus:border-[#d8aa4d]"
+              placeholder="10000000"
+            />
+
+            <p className="mt-3 text-xs text-zinc-500">
+              مقدار پیش‌فرض: ۱۰ میلیون محصول
+            </p>
+          </section>
+
+          {/* Max sellers */}
+          <section className="rounded-3xl border border-[#2d2d2d] bg-[#111111] p-6">
+            <h2 className="mb-2 text-xl font-bold text-[#e2b957]">
+              فروشنده برای هر محصول
+            </h2>
+
+            <p className="mb-5 text-sm text-zinc-500">
+              حداکثر تعداد فروشنده برای یک محصول
+            </p>
+
+            <input
+              type="number"
+              min="1"
+              value={settings.max_sellers_per_product}
+              onChange={(e) =>
+                updateSetting(
+                  "max_sellers_per_product",
+                  e.target.value
+                )
+              }
+              className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-white outline-none focus:border-[#d8aa4d]"
+              placeholder="1000"
+            />
+
+            <p className="mt-3 text-xs text-zinc-500">
+              مقدار پیش‌فرض: ۱۰۰۰ فروشنده
+            </p>
+          </section>
+
+          {/* Support */}
+          <section className="rounded-3xl border border-[#2d2d2d] bg-[#111111] p-6">
+            <h2 className="mb-2 text-xl font-bold text-[#e2b957]">
+              ایمیل پشتیبانی
+            </h2>
+
+            <p className="mb-5 text-sm text-zinc-500">
+              ایمیل نمایش داده شده برای پشتیبانی
+            </p>
+
+            <input
+              type="email"
+              value={settings.support_email}
+              onChange={(e) =>
+                updateSetting(
+                  "support_email",
+                  e.target.value
+                )
+              }
+              className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-white outline-none focus:border-[#d8aa4d]"
+              placeholder="alphakade11@gmail.com"
+              dir="ltr"
+            />
+          </section>
+
+          {/* Suggestions */}
+          <section className="rounded-3xl border border-[#2d2d2d] bg-[#111111] p-6 md:col-span-2">
+            <h2 className="mb-2 text-xl font-bold text-[#e2b957]">
+              ایمیل پیشنهادات
+            </h2>
+
+            <p className="mb-5 text-sm text-zinc-500">
+              ایمیلی که کاربران برای ارسال پیشنهادات استفاده می‌کنند
+            </p>
+
+            <input
+              type="email"
+              value={settings.suggestions_email}
+              onChange={(e) =>
+                updateSetting(
+                  "suggestions_email",
+                  e.target.value
+                )
+              }
+              className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-white outline-none focus:border-[#d8aa4d]"
+              placeholder="alphakade11@gmail.com"
+              dir="ltr"
+            />
+          </section>
         </div>
 
-        {/* ذخیره */}
-        <button
-          onClick={saveSettings}
-          disabled={saving}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#d8aa4d] px-6 py-4 font-bold text-black transition hover:bg-[#e8bd65] disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          <Save className="h-5 w-5" />
-          {saving ? "در حال ذخیره..." : "ذخیره تنظیمات"}
-        </button>
+        {/* Save */}
+        <div className="mt-8 rounded-3xl border border-[#2d2d2d] bg-[#111111] p-6">
 
-        {message && (
-          <p className="mt-4 text-center text-sm text-[#d8aa4d]">
-            {message}
-          </p>
-        )}
+          {message && (
+            <div className="mb-4 rounded-xl border border-[#4a3b20] bg-[#171208] p-4 text-center text-[#e8c875]">
+              {message}
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={saveSettings}
+            disabled={saving}
+            className="flex w-full items-center justify-center gap-3 rounded-xl bg-gradient-to-r from-[#b88322] via-[#e5bd58] to-[#a56e13] px-6 py-4 font-bold text-black transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Save size={21} />
+
+            {saving
+              ? "در حال ذخیره..."
+              : "ذخیره تنظیمات"}
+          </button>
+        </div>
+
+        {/* Footer */}
+        <div className="py-8 text-center text-sm text-zinc-600">
+          سازنده: نیماحجتی
+        </div>
       </div>
     </main>
   );
-}
-
-function Field({
-  label,
-  value,
-  onChange,
-  type = "text",
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  type?: string;
-}) {
-  return (
-    <div>
-      <label className="mb-2 block text-sm text-gray-300">
-        {label}
-      </label>
-
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        dir={type === "email" ? "ltr" : "rtl"}
-        className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-white outline-none transition focus:border-[#d8aa4d]"
-      />
-    </div>
-  );
-        }
+                }
