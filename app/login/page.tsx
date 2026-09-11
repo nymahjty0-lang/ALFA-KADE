@@ -1,13 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
-import {
-  ArrowRight,
-  LockKeyhole,
-  Smartphone,
-  ShieldCheck,
-} from "lucide-react";
+import { LockKeyhole, Smartphone, ShieldCheck } from "lucide-react";
 
 const ADMIN_NUMBERS = [
   "09936874192",
@@ -58,19 +52,22 @@ export default function LoginPage() {
     }
 
     const normalizedPhone = normalizePhone(phone);
+    const adminUser = ADMIN_NUMBERS.includes(normalizedPhone);
 
     localStorage.setItem("alfa_kade_logged_in", "true");
     localStorage.setItem("alfa_kade_phone", normalizedPhone);
 
-    if (ADMIN_NUMBERS.includes(normalizedPhone)) {
+    if (adminUser) {
       localStorage.setItem("alfa_kade_admin_verified", "true");
-      setIsAdmin(true);
     } else {
       localStorage.removeItem("alfa_kade_admin_verified");
-      setIsAdmin(false);
     }
 
     setError("");
+    setIsAdmin(adminUser);
+
+    // ورود به سایت بعد از تأیید کد
+    window.location.href = "/ALFA-KADE/products";
   }
 
   return (
@@ -78,7 +75,6 @@ export default function LoginPage() {
       <div className="mx-auto max-w-md">
         <div className="rounded-3xl border border-[#d8aa4d]/30 bg-[#101010] p-6 shadow-2xl md:p-8">
 
-          {/* Logo */}
           <div className="mb-8 text-center">
             <img
               src="/ALFA-KADE/alfa-cade.png"
@@ -192,22 +188,13 @@ export default function LoginPage() {
                 تأیید و ورود
               </button>
 
-              {isAdmin && (
-                <Link
-                  href="/admin"
-                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#d8aa4d] bg-[#d8aa4d]/10 px-5 py-4 font-bold text-[#e8c875] transition hover:bg-[#d8aa4d]/20"
-                >
-                  <ShieldCheck className="h-5 w-5" />
-                  ورود به بخش مدیریت
-                </Link>
-              )}
-
               <button
                 type="button"
                 onClick={() => {
                   setStep("phone");
                   setCode("");
                   setError("");
+                  setIsAdmin(false);
                 }}
                 className="w-full text-sm text-gray-500 transition hover:text-[#d8aa4d]"
               >
@@ -223,14 +210,6 @@ export default function LoginPage() {
             </p>
           </div>
 
-          <Link
-            href="/"
-            className="mt-6 flex items-center justify-center gap-2 text-sm text-gray-400 transition hover:text-[#d8aa4d]"
-          >
-            <ArrowRight className="h-4 w-4" />
-            بازگشت به صفحه اصلی
-          </Link>
-
           <div className="mt-8 text-center text-sm text-zinc-600">
             سازنده این سایت: نیما حجتی
           </div>
@@ -238,4 +217,4 @@ export default function LoginPage() {
       </div>
     </main>
   );
-                }
+              }
