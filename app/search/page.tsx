@@ -15,7 +15,6 @@ type Product = {
 export default function SearchPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-
   const [query, setQuery] = useState("");
 
   useEffect(() => {
@@ -27,6 +26,12 @@ export default function SearchPage() {
   }, []);
 
   async function searchProducts(value: string) {
+    if (!supabase) {
+      setProducts([]);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
 
     let request = supabase
@@ -73,7 +78,6 @@ export default function SearchPage() {
     <main className="min-h-screen bg-[#070707] px-4 py-10">
       <div className="mx-auto max-w-7xl">
 
-        {/* Title */}
         <div className="mb-8 text-center">
           <div className="mb-3 inline-block rounded-full border border-[#3a2e18] bg-[#0d0d0d] px-5 py-2 text-sm text-[#d8aa4d]">
             ALFA KADE
@@ -88,7 +92,6 @@ export default function SearchPage() {
           </p>
         </div>
 
-        {/* Search */}
         <form
           onSubmit={handleSearch}
           className="mx-auto mb-10 max-w-3xl"
@@ -113,7 +116,6 @@ export default function SearchPage() {
           </div>
         </form>
 
-        {/* Results */}
         <div className="mb-5 flex items-center justify-between">
           <h2 className="text-xl font-bold text-white">
             {query
@@ -162,7 +164,7 @@ export default function SearchPage() {
             {products.map((product) => (
               <Link
                 key={product.id}
-                href={`/products/${product.slug}`}
+                href={`/products?slug=${encodeURIComponent(product.slug)}`}
                 className="group overflow-hidden rounded-2xl border border-[#2d2414] bg-[#0c0c0c] transition hover:-translate-y-1 hover:border-[#d8aa4d]"
               >
                 <div className="flex h-48 items-center justify-center bg-[#090909] p-4">
@@ -197,4 +199,4 @@ export default function SearchPage() {
       </div>
     </main>
   );
-        }
+}
