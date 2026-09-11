@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Save, Settings, ShieldCheck } from "lucide-react";
+import { Save, Settings, ShieldCheck, Lock } from "lucide-react";
 import { createClient } from "../../lib/supabase";
 
 type SettingsState = {
@@ -24,7 +24,13 @@ const defaultSettings: SettingsState = {
   suggestions_email: "alphakade11@gmail.com",
 };
 
+const ADMIN_PASSWORD = "909174";
+
 export default function AdminPage() {
+  const [password, setPassword] = useState("");
+  const [authenticated, setAuthenticated] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
+
   const [settings, setSettings] =
     useState<SettingsState>(defaultSettings);
 
@@ -32,9 +38,21 @@ export default function AdminPage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
 
+  function login() {
+    if (password === ADMIN_PASSWORD) {
+      setAuthenticated(true);
+      setPasswordError("");
+      return;
+    }
+
+    setPasswordError("رمز مدیریت اشتباه است.");
+  }
+
   useEffect(() => {
+    if (!authenticated) return;
+
     loadSettings();
-  }, []);
+  }, [authenticated]);
 
   async function loadSettings() {
     try {
@@ -124,6 +142,67 @@ export default function AdminPage() {
     }
   }
 
+  if (!authenticated) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#070707] px-4 text-white">
+        <div className="w-full max-w-md rounded-3xl border border-[#2d2d2d] bg-[#111111] p-6 sm:p-8">
+
+          <div className="mb-6 flex justify-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#d8aa4d] text-black">
+              <Lock size={30} />
+            </div>
+          </div>
+
+          <h1 className="text-center text-2xl font-bold">
+            ورود به پنل مدیریت
+          </h1>
+
+          <p className="mt-2 text-center text-sm text-zinc-500">
+            برای ورود رمز مدیریت را وارد کنید.
+          </p>
+
+          <div className="mt-6">
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                setPasswordError("");
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  login();
+                }
+              }}
+              placeholder="رمز مدیریت"
+              inputMode="numeric"
+              dir="ltr"
+              className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-4 text-center text-xl tracking-[0.4em] text-white outline-none focus:border-[#d8aa4d]"
+            />
+          </div>
+
+          {passwordError && (
+            <div className="mt-4 rounded-xl border border-red-900/50 bg-red-950/20 p-3 text-center text-sm text-red-400">
+              {passwordError}
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={login}
+            className="mt-5 w-full rounded-xl bg-gradient-to-r from-[#b88322] via-[#e5bd58] to-[#a56e13] px-6 py-4 font-bold text-black transition hover:opacity-90"
+          >
+            ورود به مدیریت
+          </button>
+
+          <div className="mt-8 text-center text-sm text-zinc-600">
+            سازنده این سایت: نیما حجتی
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   if (loading) {
     return (
       <main className="min-h-screen bg-[#070707] px-4 py-16 text-white">
@@ -140,7 +219,6 @@ export default function AdminPage() {
     <main className="min-h-screen bg-[#070707] px-4 py-8 text-white sm:px-6">
       <div className="mx-auto max-w-5xl">
 
-        {/* Header */}
         <div className="mb-8 rounded-3xl border border-[#2d2d2d] bg-gradient-to-b from-[#171717] to-[#0d0d0d] p-6 sm:p-8">
 
           <div className="flex items-center gap-4">
@@ -167,10 +245,8 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* Settings */}
         <div className="grid gap-6 md:grid-cols-2">
 
-          {/* Registration fee */}
           <section className="rounded-3xl border border-[#2d2d2d] bg-[#111111] p-6">
             <h2 className="mb-2 text-xl font-bold text-[#e2b957]">
               هزینه ثبت محصول
@@ -185,13 +261,9 @@ export default function AdminPage() {
               min="0"
               value={settings.new_product_fee}
               onChange={(e) =>
-                updateSetting(
-                  "new_product_fee",
-                  e.target.value
-                )
+                updateSetting("new_product_fee", e.target.value)
               }
               className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-white outline-none focus:border-[#d8aa4d]"
-              placeholder="0"
             />
 
             <p className="mt-3 text-xs text-zinc-500">
@@ -199,7 +271,6 @@ export default function AdminPage() {
             </p>
           </section>
 
-          {/* Renewal fee */}
           <section className="rounded-3xl border border-[#2d2d2d] bg-[#111111] p-6">
             <h2 className="mb-2 text-xl font-bold text-[#e2b957]">
               هزینه تمدید
@@ -214,13 +285,9 @@ export default function AdminPage() {
               min="0"
               value={settings.renewal_fee}
               onChange={(e) =>
-                updateSetting(
-                  "renewal_fee",
-                  e.target.value
-                )
+                updateSetting("renewal_fee", e.target.value)
               }
               className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-white outline-none focus:border-[#d8aa4d]"
-              placeholder="200000"
             />
 
             <p className="mt-3 text-xs text-zinc-500">
@@ -228,7 +295,6 @@ export default function AdminPage() {
             </p>
           </section>
 
-          {/* Renewal period */}
           <section className="rounded-3xl border border-[#2d2d2d] bg-[#111111] p-6">
             <h2 className="mb-2 text-xl font-bold text-[#e2b957]">
               مدت تمدید
@@ -243,13 +309,9 @@ export default function AdminPage() {
               min="1"
               value={settings.renewal_months}
               onChange={(e) =>
-                updateSetting(
-                  "renewal_months",
-                  e.target.value
-                )
+                updateSetting("renewal_months", e.target.value)
               }
               className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-white outline-none focus:border-[#d8aa4d]"
-              placeholder="6"
             />
 
             <p className="mt-3 text-xs text-zinc-500">
@@ -257,7 +319,6 @@ export default function AdminPage() {
             </p>
           </section>
 
-          {/* Max products */}
           <section className="rounded-3xl border border-[#2d2d2d] bg-[#111111] p-6">
             <h2 className="mb-2 text-xl font-bold text-[#e2b957]">
               حداکثر تعداد محصولات
@@ -272,13 +333,9 @@ export default function AdminPage() {
               min="1"
               value={settings.max_products}
               onChange={(e) =>
-                updateSetting(
-                  "max_products",
-                  e.target.value
-                )
+                updateSetting("max_products", e.target.value)
               }
               className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-white outline-none focus:border-[#d8aa4d]"
-              placeholder="10000000"
             />
 
             <p className="mt-3 text-xs text-zinc-500">
@@ -286,7 +343,6 @@ export default function AdminPage() {
             </p>
           </section>
 
-          {/* Max sellers */}
           <section className="rounded-3xl border border-[#2d2d2d] bg-[#111111] p-6">
             <h2 className="mb-2 text-xl font-bold text-[#e2b957]">
               فروشنده برای هر محصول
@@ -307,7 +363,6 @@ export default function AdminPage() {
                 )
               }
               className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-white outline-none focus:border-[#d8aa4d]"
-              placeholder="1000"
             />
 
             <p className="mt-3 text-xs text-zinc-500">
@@ -315,7 +370,6 @@ export default function AdminPage() {
             </p>
           </section>
 
-          {/* Support */}
           <section className="rounded-3xl border border-[#2d2d2d] bg-[#111111] p-6">
             <h2 className="mb-2 text-xl font-bold text-[#e2b957]">
               ایمیل پشتیبانی
@@ -329,18 +383,13 @@ export default function AdminPage() {
               type="email"
               value={settings.support_email}
               onChange={(e) =>
-                updateSetting(
-                  "support_email",
-                  e.target.value
-                )
+                updateSetting("support_email", e.target.value)
               }
               className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-white outline-none focus:border-[#d8aa4d]"
-              placeholder="alphakade11@gmail.com"
               dir="ltr"
             />
           </section>
 
-          {/* Suggestions */}
           <section className="rounded-3xl border border-[#2d2d2d] bg-[#111111] p-6 md:col-span-2">
             <h2 className="mb-2 text-xl font-bold text-[#e2b957]">
               ایمیل پیشنهادات
@@ -354,19 +403,14 @@ export default function AdminPage() {
               type="email"
               value={settings.suggestions_email}
               onChange={(e) =>
-                updateSetting(
-                  "suggestions_email",
-                  e.target.value
-                )
+                updateSetting("suggestions_email", e.target.value)
               }
               className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-white outline-none focus:border-[#d8aa4d]"
-              placeholder="alphakade11@gmail.com"
               dir="ltr"
             />
           </section>
         </div>
 
-        {/* Save */}
         <div className="mt-8 rounded-3xl border border-[#2d2d2d] bg-[#111111] p-6">
 
           {message && (
@@ -389,11 +433,10 @@ export default function AdminPage() {
           </button>
         </div>
 
-        {/* Footer */}
         <div className="py-8 text-center text-sm text-zinc-600">
-          سازنده: نیماحجتی
+          سازنده این سایت: نیما حجتی
         </div>
       </div>
     </main>
-);
-}
+  );
+                      }
