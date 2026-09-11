@@ -4,6 +4,14 @@ import { useEffect, useState } from "react";
 import { Save, Settings, ShieldCheck, Lock } from "lucide-react";
 import { createClient } from "../../lib/supabase";
 
+const ADMIN_NUMBERS = [
+  "09936874192",
+  "09966920595",
+  "09010391546",
+];
+
+const ADMIN_PASSWORD = "909174";
+
 type SettingsState = {
   new_product_fee: string;
   renewal_fee: string;
@@ -24,9 +32,21 @@ const defaultSettings: SettingsState = {
   suggestions_email: "alphakade11@gmail.com",
 };
 
-const ADMIN_PASSWORD = "909174";
+function normalizePhone(value: string) {
+  return value
+    .replace(/[۰-۹]/g, (digit) =>
+      String("۰۱۲۳۴۵۶۷۸۹".indexOf(digit))
+    )
+    .replace(/[٠-٩]/g, (digit) =>
+      String("٠١٢٣٤٥٦٧٨٩".indexOf(digit))
+    )
+    .replace(/\D/g, "");
+}
 
 export default function AdminPage() {
+  const [checkingAccess, setCheckingAccess] = useState(true);
+  const [allowed, setAllowed] = useState(false);
+
   const [password, setPassword] = useState("");
   const [authenticated, setAuthenticated] = useState(false);
   const [passwordError, setPasswordError] = useState("");
@@ -38,14 +58,39 @@ export default function AdminPage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
 
-  function login() {
-    if (password === ADMIN_PASSWORD) {
-      setAuthenticated(true);
-      setPasswordError("");
+  useEffect(() => {
+    const loggedIn =
+      localStorage.getItem("alfa_kade_logged_in") === "true";
+
+    const phone = normalizePhone(
+      localStorage.getItem("alfa_kade_phone") || ""
+    );
+
+    const adminVerified =
+      localStorage.getItem("alfa_kade_admin_verified") === "true";
+
+    const isAuthorized =
+      loggedIn &&
+      adminVerified &&
+      ADMIN_NUMBERS.includes(phone);
+
+    if (!isAuthorized) {
+      window.location.href = "/ALFA-KADE/login";
       return;
     }
 
-    setPasswordError("رمز مدیریت اشتباه است.");
+    setAllowed(true);
+    setCheckingAccess(false);
+  }, []);
+
+  function login() {
+    if (password !== ADMIN_PASSWORD) {
+      setPasswordError("رمز مدیریت اشتباه است.");
+      return;
+    }
+
+    setAuthenticated(true);
+    setPasswordError("");
   }
 
   useEffect(() => {
@@ -142,6 +187,20 @@ export default function AdminPage() {
     }
   }
 
+  if (checkingAccess) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#070707] text-white">
+        <p className="text-zinc-400">
+          در حال بررسی دسترسی...
+        </p>
+      </main>
+    );
+  }
+
+  if (!allowed) {
+    return null;
+  }
+
   if (!authenticated) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#070707] px-4 text-white">
@@ -158,28 +217,26 @@ export default function AdminPage() {
           </h1>
 
           <p className="mt-2 text-center text-sm text-zinc-500">
-            برای ورود رمز مدیریت را وارد کنید.
+            رمز مدیریت را وارد کنید.
           </p>
 
-          <div className="mt-6">
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => {
-                setPassword(e.target.value);
-                setPasswordError("");
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  login();
-                }
-              }}
-              placeholder="رمز مدیریت"
-              inputMode="numeric"
-              dir="ltr"
-              className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-4 text-center text-xl tracking-[0.4em] text-white outline-none focus:border-[#d8aa4d]"
-            />
-          </div>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              setPasswordError("");
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                login();
+              }
+            }}
+            placeholder="رمز مدیریت"
+            inputMode="numeric"
+            dir="ltr"
+            className="mt-6 w-full rounded-xl border border-zinc-700 bg-black px-4 py-4 text-center text-xl tracking-[0.4em] text-white outline-none focus:border-[#d8aa4d]"
+          />
 
           {passwordError && (
             <div className="mt-4 rounded-xl border border-red-900/50 bg-red-950/20 p-3 text-center text-sm text-red-400">
@@ -251,11 +308,9 @@ export default function AdminPage() {
             <h2 className="mb-2 text-xl font-bold text-[#e2b957]">
               هزینه ثبت محصول
             </h2>
-
             <p className="mb-5 text-sm text-zinc-500">
               هزینه ثبت اولیه هر محصول به تومان
             </p>
-
             <input
               type="number"
               min="0"
@@ -265,7 +320,6 @@ export default function AdminPage() {
               }
               className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-white outline-none focus:border-[#d8aa4d]"
             />
-
             <p className="mt-3 text-xs text-zinc-500">
               مقدار پیش‌فرض: رایگان
             </p>
@@ -275,11 +329,9 @@ export default function AdminPage() {
             <h2 className="mb-2 text-xl font-bold text-[#e2b957]">
               هزینه تمدید
             </h2>
-
             <p className="mb-5 text-sm text-zinc-500">
               مبلغ تمدید محصول به تومان
             </p>
-
             <input
               type="number"
               min="0"
@@ -289,7 +341,6 @@ export default function AdminPage() {
               }
               className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-white outline-none focus:border-[#d8aa4d]"
             />
-
             <p className="mt-3 text-xs text-zinc-500">
               مقدار پیش‌فرض: ۲۰۰٬۰۰۰ تومان
             </p>
@@ -299,11 +350,9 @@ export default function AdminPage() {
             <h2 className="mb-2 text-xl font-bold text-[#e2b957]">
               مدت تمدید
             </h2>
-
             <p className="mb-5 text-sm text-zinc-500">
               مدت اعتبار محصول بر اساس ماه
             </p>
-
             <input
               type="number"
               min="1"
@@ -313,7 +362,6 @@ export default function AdminPage() {
               }
               className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-white outline-none focus:border-[#d8aa4d]"
             />
-
             <p className="mt-3 text-xs text-zinc-500">
               مقدار پیش‌فرض: ۶ ماه
             </p>
@@ -323,11 +371,9 @@ export default function AdminPage() {
             <h2 className="mb-2 text-xl font-bold text-[#e2b957]">
               حداکثر تعداد محصولات
             </h2>
-
             <p className="mb-5 text-sm text-zinc-500">
               حداکثر تعداد محصول قابل ثبت در سایت
             </p>
-
             <input
               type="number"
               min="1"
@@ -337,7 +383,6 @@ export default function AdminPage() {
               }
               className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-white outline-none focus:border-[#d8aa4d]"
             />
-
             <p className="mt-3 text-xs text-zinc-500">
               مقدار پیش‌فرض: ۱۰ میلیون محصول
             </p>
@@ -347,11 +392,9 @@ export default function AdminPage() {
             <h2 className="mb-2 text-xl font-bold text-[#e2b957]">
               فروشنده برای هر محصول
             </h2>
-
             <p className="mb-5 text-sm text-zinc-500">
               حداکثر تعداد فروشنده برای یک محصول
             </p>
-
             <input
               type="number"
               min="1"
@@ -364,7 +407,6 @@ export default function AdminPage() {
               }
               className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-white outline-none focus:border-[#d8aa4d]"
             />
-
             <p className="mt-3 text-xs text-zinc-500">
               مقدار پیش‌فرض: ۱۰۰۰ فروشنده
             </p>
@@ -374,11 +416,9 @@ export default function AdminPage() {
             <h2 className="mb-2 text-xl font-bold text-[#e2b957]">
               ایمیل پشتیبانی
             </h2>
-
             <p className="mb-5 text-sm text-zinc-500">
               ایمیل نمایش داده شده برای پشتیبانی
             </p>
-
             <input
               type="email"
               value={settings.support_email}
@@ -394,11 +434,9 @@ export default function AdminPage() {
             <h2 className="mb-2 text-xl font-bold text-[#e2b957]">
               ایمیل پیشنهادات
             </h2>
-
             <p className="mb-5 text-sm text-zinc-500">
               ایمیلی که کاربران برای ارسال پیشنهادات استفاده می‌کنند
             </p>
-
             <input
               type="email"
               value={settings.suggestions_email}
@@ -426,10 +464,7 @@ export default function AdminPage() {
             className="flex w-full items-center justify-center gap-3 rounded-xl bg-gradient-to-r from-[#b88322] via-[#e5bd58] to-[#a56e13] px-6 py-4 font-bold text-black transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Save size={21} />
-
-            {saving
-              ? "در حال ذخیره..."
-              : "ذخیره تنظیمات"}
+            {saving ? "در حال ذخیره..." : "ذخیره تنظیمات"}
           </button>
         </div>
 
@@ -439,4 +474,4 @@ export default function AdminPage() {
       </div>
     </main>
   );
-                      }
+      }
