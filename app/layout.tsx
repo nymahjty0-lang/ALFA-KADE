@@ -3,9 +3,8 @@ import "./globals.css";
 import Header from "@/components/Header";
 
 export const metadata: Metadata = {
-  title: "آلفا کده | ALFA KADE",
-  description:
-    "مقایسه قیمت محصولات از فروشندگان مختلف در آلفا کده",
+  title: "ALFA KADE | آلفا کده",
+  description: "مقایسه قیمت و خرید از فروشندگان",
 };
 
 export default function RootLayout({
@@ -15,7 +14,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fa" dir="rtl">
-      <body className="min-h-screen bg-[#070707] text-white antialiased">
+      <body>
         <Header />
         {children}
       </body>
