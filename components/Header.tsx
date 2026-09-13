@@ -35,32 +35,27 @@ export default function Header() {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    const loggedIn =
-      localStorage.getItem("alfa_kade_logged_in") === "true";
-
     const phone = normalizePhone(
       localStorage.getItem("alfa_kade_phone") || ""
     );
 
+    const loggedIn =
+      localStorage.getItem("alfa_kade_logged_in") === "true";
+
     const adminVerified =
       localStorage.getItem("alfa_kade_admin_verified") === "true";
 
-    if (
+    setIsAdmin(
       loggedIn &&
       adminVerified &&
       ADMIN_NUMBERS.includes(phone)
-    ) {
-      setIsAdmin(true);
-    } else {
-      setIsAdmin(false);
-    }
+    );
   }, []);
 
   return (
     <header className="sticky top-0 z-50 border-b border-[#d8aa4d]/20 bg-[#050505]/95 backdrop-blur">
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4">
 
-        {/* لوگو */}
         <Link
           href="/"
           className="flex items-center gap-3"
@@ -83,7 +78,6 @@ export default function Header() {
           </div>
         </Link>
 
-        {/* منوی دسکتاپ */}
         <nav className="hidden items-center gap-2 md:flex">
 
           <Link
@@ -107,19 +101,17 @@ export default function Header() {
             ثبت محصول
           </Link>
 
-          {/* فقط مدیران مجاز */}
           {isAdmin && (
             <Link
-              href="/settings"
-              className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm text-gray-300 transition hover:bg-[#d8aa4d]/10 hover:text-[#d8aa4d]"
+              href="/admin"
+              className="rounded-lg px-4 py-2 text-sm text-[#d8aa4d] transition hover:bg-[#d8aa4d]/10"
             >
-              <Settings className="h-4 w-4" />
               مدیریت و تنظیمات
             </Link>
           )}
+
         </nav>
 
-        {/* دکمه‌های سمت چپ */}
         <div className="flex items-center gap-2">
 
           <Link
@@ -150,10 +142,10 @@ export default function Header() {
               <Menu className="h-6 w-6" />
             )}
           </button>
+
         </div>
       </div>
 
-      {/* منوی موبایل */}
       {open && (
         <div className="border-t border-[#d8aa4d]/20 bg-[#090909] px-4 py-4 md:hidden">
           <div className="mx-auto max-w-7xl space-y-2">
@@ -203,12 +195,11 @@ export default function Header() {
               ورود
             </Link>
 
-            {/* فقط مدیران مجاز */}
             {isAdmin && (
               <Link
-                href="/settings"
+                href="/admin"
                 onClick={() => setOpen(false)}
-                className="flex items-center gap-3 rounded-xl px-4 py-3 text-gray-300 hover:bg-[#d8aa4d]/10 hover:text-[#d8aa4d]"
+                className="flex items-center gap-3 rounded-xl px-4 py-3 text-[#d8aa4d] hover:bg-[#d8aa4d]/10"
               >
                 <Settings className="h-5 w-5" />
                 مدیریت و تنظیمات
@@ -220,4 +211,4 @@ export default function Header() {
       )}
     </header>
   );
-              }
+      }
