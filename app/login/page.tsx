@@ -1,9 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import {
-  ArrowRight,
   LockKeyhole,
   Smartphone,
   ShieldCheck,
@@ -32,7 +30,6 @@ export default function LoginPage() {
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
   const [step, setStep] = useState<"phone" | "code">("phone");
-  const [isAdmin, setIsAdmin] = useState(false);
   const [error, setError] = useState("");
 
   function sendCode() {
@@ -43,14 +40,10 @@ export default function LoginPage() {
       return;
     }
 
-    const adminUser = ADMIN_NUMBERS.includes(normalizedPhone);
-
     setPhone(normalizedPhone);
-    setIsAdmin(adminUser);
     setCode("");
     setError("");
 
-    // جلوگیری از باقی ماندن دسترسی قبلی
     localStorage.removeItem("alfa_kade_logged_in");
     localStorage.removeItem("alfa_kade_phone");
     localStorage.removeItem("alfa_kade_admin_verified");
@@ -59,215 +52,192 @@ export default function LoginPage() {
   }
 
   function verifyCode() {
+    const normalizedPhone = normalizePhone(phone);
+
     if (code !== TEST_CODE) {
       setError("کد تأیید اشتباه است. کد آزمایشی: 1234");
       return;
     }
 
-    const normalizedPhone = normalizePhone(phone);
-    const adminUser = ADMIN_NUMBERS.includes(normalizedPhone);
+    const isAdmin = ADMIN_NUMBERS.includes(normalizedPhone);
 
     localStorage.setItem("alfa_kade_logged_in", "true");
     localStorage.setItem("alfa_kade_phone", normalizedPhone);
 
-    if (adminUser) {
+    if (isAdmin) {
       localStorage.setItem(
         "alfa_kade_admin_verified",
         "true"
       );
-      setIsAdmin(true);
     } else {
       localStorage.removeItem("alfa_kade_admin_verified");
-      setIsAdmin(false);
     }
 
     setError("");
 
-    // بعد از ورود موفق، ورود به سایت
     window.location.href = "/ALFA-KADE/products";
   }
 
   return (
-    <main className="min-h-screen bg-[#070707] px-4 py-12 text-white">
-      <div className="mx-auto max-w-md">
-        <div className="rounded-3xl border border-[#d8aa4d]/30 bg-[#101010] p-6 shadow-2xl md:p-8">
-
-          <div className="mb-8 text-center">
+    <main
+      dir="rtl"
+      className="min-h-screen bg-[#070707] text-white flex items-center justify-center px-4 py-10"
+    >
+      <div className="w-full max-w-md">
+        <div className="rounded-3xl border border-[#8f6f2d] bg-[#0d0d0d] shadow-2xl overflow-hidden">
+          <div className="flex flex-col items-center px-6 pt-8 pb-6">
             <img
               src="/ALFA-KADE/alfa-cade.png"
-              alt="آلفا کده"
-              className="mx-auto h-24 w-24 rounded-2xl object-contain"
+              alt="ALFA KADE"
+              className="w-28 h-28 rounded-2xl object-cover border border-[#b88a32] shadow-lg"
             />
 
-            <h1 className="mt-5 text-2xl font-bold text-[#d8aa4d]">
-              ورود به آلفا کده
+            <h1 className="mt-5 text-3xl font-bold text-[#d8aa4d]">
+              آلفا کده
             </h1>
 
             <p className="mt-2 text-sm text-gray-400">
-              {step === "phone"
-                ? "برای ورود شماره موبایل خود را وارد کنید"
-                : "کد تأیید ارسال‌شده را وارد کنید"}
+              ALFA KADE
+            </p>
+
+            <p className="mt-5 text-center text-gray-300 leading-7">
+              ورود به آلفا کده
+              <br />
+              مقایسه قیمت و خرید هوشمند
             </p>
           </div>
 
-          {step === "phone" ? (
-            <div className="space-y-5">
+          <div className="px-6 pb-7">
+            {step === "phone" ? (
+              <div className="space-y-5">
+                <div>
+                  <label className="mb-2 block text-sm text-gray-300">
+                    شماره موبایل
+                  </label>
 
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-300">
-                  شماره موبایل
-                </label>
+                  <div className="relative">
+                    <Smartphone
+                      size={20}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-[#d8aa4d]"
+                    />
 
-                <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-black/40 px-4">
-                  <Smartphone className="h-5 w-5 text-[#d8aa4d]" />
+                    <input
+                      dir="ltr"
+                      inputMode="numeric"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="09123456789"
+                      className="w-full rounded-2xl border border-[#4f4022] bg-black py-4 pr-12 pl-4 text-white outline-none transition focus:border-[#d8aa4d]"
+                    />
+                  </div>
+                </div>
 
-                  <input
-                    type="tel"
-                    dir="ltr"
-                    value={phone}
-                    onChange={(e) => {
-                      setPhone(e.target.value);
-                      setError("");
-                    }}
-                    placeholder="09123456789"
-                    maxLength={11}
-                    className="w-full bg-transparent py-4 text-white outline-none placeholder:text-gray-600"
+                {error && (
+                  <div className="rounded-xl border border-red-900 bg-red-950/30 px-4 py-3 text-sm text-red-300">
+                    {error}
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={sendCode}
+                  className="w-full rounded-2xl bg-[#d8aa4d] py-4 font-bold text-black transition hover:bg-[#efc766] active:scale-[0.99]"
+                >
+                  دریافت کد ورود
+                </button>
+
+                <div className="flex items-center gap-3 rounded-2xl border border-[#292929] bg-black/40 p-4">
+                  <ShieldCheck
+                    size={23}
+                    className="shrink-0 text-[#d8aa4d]"
                   />
+
+                  <p className="text-xs leading-6 text-gray-400">
+                    ورود مدیر فقط برای شماره‌های مجاز آلفا کده فعال است.
+                  </p>
                 </div>
               </div>
+            ) : (
+              <div className="space-y-5">
+                <div>
+                  <label className="mb-2 block text-sm text-gray-300">
+                    کد تأیید
+                  </label>
 
-              {error && (
-                <div className="rounded-xl border border-red-900/50 bg-red-950/20 p-3 text-center text-sm text-red-400">
-                  {error}
+                  <div className="relative">
+                    <LockKeyhole
+                      size={20}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-[#d8aa4d]"
+                    />
+
+                    <input
+                      dir="ltr"
+                      inputMode="numeric"
+                      maxLength={4}
+                      value={code}
+                      onChange={(e) =>
+                        setCode(
+                          normalizePhone(e.target.value).slice(0, 4)
+                        )
+                      }
+                      placeholder="1234"
+                      className="w-full rounded-2xl border border-[#4f4022] bg-black py-4 pr-12 pl-4 text-center tracking-[0.5em] text-white outline-none transition focus:border-[#d8aa4d]"
+                    />
+                  </div>
                 </div>
-              )}
 
-              <button
-                type="button"
-                onClick={sendCode}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#d8aa4d] px-5 py-4 font-bold text-black transition hover:bg-[#e8bd65]"
-              >
-                <LockKeyhole className="h-5 w-5" />
-                دریافت کد ورود
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-5">
+                {error && (
+                  <div className="rounded-xl border border-red-900 bg-red-950/30 px-4 py-3 text-sm text-red-300">
+                    {error}
+                  </div>
+                )}
 
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-300">
-                  کد تأیید
-                </label>
+                <button
+                  type="button"
+                  onClick={verifyCode}
+                  className="w-full rounded-2xl bg-[#d8aa4d] py-4 font-bold text-black transition hover:bg-[#efc766] active:scale-[0.99]"
+                >
+                  ورود به آلفا کده
+                </button>
 
-                <input
-                  type="tel"
-                  dir="ltr"
-                  value={code}
-                  onChange={(e) => {
-                    setCode(e.target.value);
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStep("phone");
+                    setCode("");
                     setError("");
                   }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      verifyCode();
-                    }
-                  }}
-                  maxLength={6}
-                  placeholder="1234"
-                  className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-4 text-center text-2xl tracking-[0.4em] text-white outline-none focus:border-[#d8aa4d]"
-                />
-              </div>
-
-              <div className="rounded-xl border border-[#d8aa4d]/20 bg-[#d8aa4d]/5 p-4 text-center">
-                <p className="text-sm text-[#e8c875]">
-                  کد آزمایشی ورود:
-                </p>
-
-                <p
-                  dir="ltr"
-                  className="mt-2 text-2xl font-bold tracking-[0.3em] text-white"
+                  className="w-full rounded-2xl border border-[#4f4022] py-3 text-sm text-gray-300 transition hover:border-[#d8aa4d] hover:text-white"
                 >
-                  1234
-                </p>
+                  تغییر شماره موبایل
+                </button>
 
-                <p className="mt-2 text-xs text-gray-500">
-                  بعداً این قسمت به سرویس واقعی پیامک متصل می‌شود.
-                </p>
-              </div>
-
-              {error && (
-                <div className="rounded-xl border border-red-900/50 bg-red-950/20 p-3 text-center text-sm text-red-400">
-                  {error}
+                <div className="rounded-2xl border border-[#292929] bg-black/40 p-4 text-center">
+                  <p className="text-xs text-gray-500">
+                    کد آزمایشی ورود
+                  </p>
+                  <p
+                    dir="ltr"
+                    className="mt-1 text-lg font-bold tracking-widest text-[#d8aa4d]"
+                  >
+                    1234
+                  </p>
                 </div>
-              )}
-
-              <button
-                type="button"
-                onClick={verifyCode}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#d8aa4d] px-5 py-4 font-bold text-black transition hover:bg-[#e8bd65]"
-              >
-                <ShieldCheck className="h-5 w-5" />
-                تأیید و ورود
-              </button>
-
-              {isAdmin && (
-                <Link
-                  href="/admin"
-                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#d8aa4d] bg-[#d8aa4d]/10 px-5 py-4 font-bold text-[#e8c875] transition hover:bg-[#d8aa4d]/20"
-                >
-                  <ShieldCheck className="h-5 w-5" />
-                  ورود به بخش مدیریت
-                </Link>
-              )}
-
-              <button
-                type="button"
-                onClick={() => {
-                  setStep("phone");
-                  setPhone("");
-                  setCode("");
-                  setIsAdmin(false);
-                  setError("");
-
-                  localStorage.removeItem(
-                    "alfa_kade_logged_in"
-                  );
-                  localStorage.removeItem(
-                    "alfa_kade_phone"
-                  );
-                  localStorage.removeItem(
-                    "alfa_kade_admin_verified"
-                  );
-                }}
-                className="w-full text-sm text-gray-500 transition hover:text-[#d8aa4d]"
-              >
-                تغییر شماره موبایل
-              </button>
-            </div>
-          )}
-
-          <div className="mt-6 rounded-xl border border-[#d8aa4d]/20 bg-[#d8aa4d]/5 p-4 text-center">
-            <p className="text-xs leading-6 text-gray-400">
-              کد تأیید از طریق پیامک برای شماره موبایل شما ارسال می‌شود.
-              در حال حاضر سیستم پیامک آزمایشی است.
-            </p>
+              </div>
+            )}
           </div>
 
-          {step === "code" && (
-            <Link
-              href="/"
-              className="mt-6 flex items-center justify-center gap-2 text-sm text-gray-400 transition hover:text-[#d8aa4d]"
-            >
-              <ArrowRight className="h-4 w-4" />
-              بازگشت
-            </Link>
-          )}
+          <div className="border-t border-[#242424] px-6 py-5 text-center">
+            <p className="text-xs text-gray-500">
+              سازنده: نیماحجتی
+            </p>
 
-          <div className="mt-8 text-center text-sm text-zinc-600">
-            سازنده این سایت: نیما حجتی
+            <p className="mt-2 text-xs text-gray-600">
+              © ALFA KADE
+            </p>
           </div>
         </div>
       </div>
     </main>
   );
-                         }
+  }
