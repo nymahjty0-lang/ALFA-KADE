@@ -32,74 +32,108 @@ function normalizePhone(value: string) {
     .replace(/\D/g, "");
 }
 
-function getCartCount() {
-  try {
-    const raw = localStorage.getItem("alfa_kade_cart");
-
-    if (!raw) {
-      return 0;
-    }
-
-    const cart = JSON.parse(raw);
-
-    if (!Array.isArray(cart)) {
-      return 0;
-    }
-
-    return cart.reduce((total, item) => {
-      const quantity = Number(item?.quantity);
-
-      if (!Number.isFinite(quantity) || quantity < 0) {
-        return total;
-      }
-
-      return total + Math.floor(quantity);
-    }, 0);
-  } catch {
-    return 0;
-  }
-}
-
 export default function Header() {
   const [open, setOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [cartCount, setCartCount] = useState(0);
 
   useEffect(() => {
-    function checkUser() {
+    function checkAdmin() {
       const phone = normalizePhone(
-        localStorage.getItem("alfa_kade_phone") || ""
+        localStorage.getItem(
+          "alfa_kade_phone"
+        ) || ""
       );
 
       const loggedIn =
-        localStorage.getItem("alfa_kade_logged_in") === "true";
+        localStorage.getItem(
+          "alfa_kade_logged_in"
+        ) === "true";
 
       const adminVerified =
-        localStorage.getItem("alfa_kade_admin_verified") === "true";
+        localStorage.getItem(
+          "alfa_kade_admin_verified"
+        ) === "true";
 
       setIsAdmin(
         loggedIn &&
           adminVerified &&
           ADMIN_NUMBERS.includes(phone)
       );
-
-      setCartCount(getCartCount());
     }
 
-    checkUser();
+    function updateCartCount() {
+      try {
+        const raw =
+          localStorage.getItem(
+            "alfa_kade_cart"
+          );
 
-    function handleCartUpdate() {
-      setCartCount(getCartCount());
+        if (!raw) {
+          setCartCount(0);
+          return;
+        }
+
+        const cart = JSON.parse(raw);
+
+        if (!Array.isArray(cart)) {
+          setCartCount(0);
+          return;
+        }
+
+        const count = cart.reduce(
+          (
+            total: number,
+            item: {
+              quantity?: number;
+            }
+          ) =>
+            total +
+            Math.max(
+              0,
+              Number(item.quantity) || 0
+            ),
+          0
+        );
+
+        setCartCount(count);
+      } catch {
+        setCartCount(0);
+      }
     }
 
-    window.addEventListener("storage", checkUser);
-    window.addEventListener("alfa-kade-cart-updated", handleCartUpdate);
+    checkAdmin();
+    updateCartCount();
+
+    window.addEventListener(
+      "storage",
+      checkAdmin
+    );
+
+    window.addEventListener(
+      "storage",
+      updateCartCount
+    );
+
+    window.addEventListener(
+      "alfa-kade-cart-updated",
+      updateCartCount
+    );
 
     return () => {
-      window.removeEventListener("storage", checkUser);
+      window.removeEventListener(
+        "storage",
+        checkAdmin
+      );
+
+      window.removeEventListener(
+        "storage",
+        updateCartCount
+      );
+
       window.removeEventListener(
         "alfa-kade-cart-updated",
-        handleCartUpdate
+        updateCartCount
       );
     };
   }, []);
@@ -108,7 +142,6 @@ export default function Header() {
     <header className="sticky top-0 z-50 border-b border-[#d8aa4d]/20 bg-[#050505]/95 backdrop-blur">
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4">
 
-        {/* لوگو */}
         <Link
           href="/"
           className="flex items-center gap-3"
@@ -131,26 +164,25 @@ export default function Header() {
           </div>
         </Link>
 
-        {/* منوی دسکتاپ */}
-        <nav className="hidden items-center gap-2 md:flex">
+        <nav className="hidden items-center gap-1 md:flex">
 
           <Link
             href="/"
-            className="rounded-lg px-4 py-2 text-sm text-gray-300 transition hover:bg-[#d8aa4d]/10 hover:text-[#d8aa4d]"
+            className="rounded-lg px-3 py-2 text-sm text-gray-300 transition hover:bg-[#d8aa4d]/10 hover:text-[#d8aa4d]"
           >
             خانه
           </Link>
 
           <Link
             href="/products"
-            className="rounded-lg px-4 py-2 text-sm text-gray-300 transition hover:bg-[#d8aa4d]/10 hover:text-[#d8aa4d]"
+            className="rounded-lg px-3 py-2 text-sm text-gray-300 transition hover:bg-[#d8aa4d]/10 hover:text-[#d8aa4d]"
           >
-            همه محصولات
+            محصولات
           </Link>
 
           <Link
             href="/products/register"
-            className="rounded-lg px-4 py-2 text-sm text-gray-300 transition hover:bg-[#d8aa4d]/10 hover:text-[#d8aa4d]"
+            className="rounded-lg px-3 py-2 text-sm text-gray-300 transition hover:bg-[#d8aa4d]/10 hover:text-[#d8aa4d]"
           >
             ثبت محصول
           </Link>
@@ -159,7 +191,7 @@ export default function Header() {
             <>
               <Link
                 href="/admin"
-                className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm text-[#e8c875] transition hover:bg-[#d8aa4d]/10"
+                className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-[#e8c875] transition hover:bg-[#d8aa4d]/10"
               >
                 <ShieldCheck className="h-4 w-4" />
                 مدیریت
@@ -167,7 +199,7 @@ export default function Header() {
 
               <Link
                 href="/settings"
-                className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm text-gray-300 transition hover:bg-[#d8aa4d]/10 hover:text-[#d8aa4d]"
+                className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-300 transition hover:bg-[#d8aa4d]/10 hover:text-[#d8aa4d]"
               >
                 <Settings className="h-4 w-4" />
                 تنظیمات
@@ -176,7 +208,6 @@ export default function Header() {
           )}
         </nav>
 
-        {/* دکمه‌های سمت چپ */}
         <div className="flex items-center gap-2">
 
           <Link
@@ -187,20 +218,21 @@ export default function Header() {
             <Search className="h-5 w-5" />
           </Link>
 
-          {/* سبد خرید */}
           <Link
             href="/cart"
             aria-label="سبد خرید"
-            className="relative flex h-11 w-11 items-center justify-center rounded-xl border border-[#d8aa4d]/40 bg-[#d8aa4d]/10 text-[#d8aa4d] transition hover:border-[#d8aa4d] hover:bg-[#d8aa4d]/20"
+            className="relative flex h-11 w-11 items-center justify-center rounded-xl border border-[#d8aa4d]/40 bg-[#101010] text-[#d8aa4d] transition hover:border-[#d8aa4d] hover:bg-[#d8aa4d]/10"
           >
             <ShoppingCart className="h-5 w-5" />
 
             {cartCount > 0 && (
               <span
                 dir="ltr"
-                className="absolute -right-1.5 -top-1.5 flex min-h-5 min-w-5 items-center justify-center rounded-full border border-[#070707] bg-[#d8aa4d] px-1 text-[10px] font-bold text-black"
+                className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#d8aa4d] px-1 text-[10px] font-black text-black"
               >
-                {cartCount > 99 ? "99+" : cartCount}
+                {cartCount > 99
+                  ? "99+"
+                  : cartCount}
               </span>
             )}
           </Link>
@@ -228,7 +260,6 @@ export default function Header() {
         </div>
       </div>
 
-      {/* منوی موبایل */}
       {open && (
         <div className="border-t border-[#d8aa4d]/20 bg-[#090909] px-4 py-4 md:hidden">
           <div className="mx-auto max-w-7xl space-y-2">
@@ -282,9 +313,11 @@ export default function Header() {
               {cartCount > 0 && (
                 <span
                   dir="ltr"
-                  className="rounded-full bg-[#d8aa4d] px-2 py-1 text-xs font-bold text-black"
+                  className="flex h-6 min-w-6 items-center justify-center rounded-full bg-[#d8aa4d] px-1.5 text-xs font-black text-black"
                 >
-                  {cartCount > 99 ? "99+" : cartCount}
+                  {cartCount > 99
+                    ? "99+"
+                    : cartCount}
                 </span>
               )}
             </Link>
@@ -319,10 +352,9 @@ export default function Header() {
                 </Link>
               </>
             )}
-
           </div>
         </div>
       )}
     </header>
   );
-        }
+          }
