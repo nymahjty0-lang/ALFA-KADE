@@ -10,6 +10,7 @@ import {
   Settings,
   Package,
   ShieldCheck,
+  ShoppingCart,
 } from "lucide-react";
 
 const BASE_PATH = "/ALFA-KADE";
@@ -31,12 +32,41 @@ function normalizePhone(value: string) {
     .replace(/\D/g, "");
 }
 
+function getCartCount() {
+  try {
+    const raw = localStorage.getItem("alfa_kade_cart");
+
+    if (!raw) {
+      return 0;
+    }
+
+    const cart = JSON.parse(raw);
+
+    if (!Array.isArray(cart)) {
+      return 0;
+    }
+
+    return cart.reduce((total, item) => {
+      const quantity = Number(item?.quantity);
+
+      if (!Number.isFinite(quantity) || quantity < 0) {
+        return total;
+      }
+
+      return total + Math.floor(quantity);
+    }, 0);
+  } catch {
+    return 0;
+  }
+}
+
 export default function Header() {
   const [open, setOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [cartCount, setCartCount] = useState(0);
 
   useEffect(() => {
-    function checkAdmin() {
+    function checkUser() {
       const phone = normalizePhone(
         localStorage.getItem("alfa_kade_phone") || ""
       );
@@ -49,17 +79,28 @@ export default function Header() {
 
       setIsAdmin(
         loggedIn &&
-        adminVerified &&
-        ADMIN_NUMBERS.includes(phone)
+          adminVerified &&
+          ADMIN_NUMBERS.includes(phone)
       );
+
+      setCartCount(getCartCount());
     }
 
-    checkAdmin();
+    checkUser();
 
-    window.addEventListener("storage", checkAdmin);
+    function handleCartUpdate() {
+      setCartCount(getCartCount());
+    }
+
+    window.addEventListener("storage", checkUser);
+    window.addEventListener("alfa-kade-cart-updated", handleCartUpdate);
 
     return () => {
-      window.removeEventListener("storage", checkAdmin);
+      window.removeEventListener("storage", checkUser);
+      window.removeEventListener(
+        "alfa-kade-cart-updated",
+        handleCartUpdate
+      );
     };
   }, []);
 
@@ -114,7 +155,6 @@ export default function Header() {
             ثبت محصول
           </Link>
 
-          {/* فقط مدیران */}
           {isAdmin && (
             <>
               <Link
@@ -145,6 +185,24 @@ export default function Header() {
             className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-[#101010] text-gray-300 transition hover:border-[#d8aa4d]/50 hover:text-[#d8aa4d]"
           >
             <Search className="h-5 w-5" />
+          </Link>
+
+          {/* سبد خرید */}
+          <Link
+            href="/cart"
+            aria-label="سبد خرید"
+            className="relative flex h-11 w-11 items-center justify-center rounded-xl border border-[#d8aa4d]/40 bg-[#d8aa4d]/10 text-[#d8aa4d] transition hover:border-[#d8aa4d] hover:bg-[#d8aa4d]/20"
+          >
+            <ShoppingCart className="h-5 w-5" />
+
+            {cartCount > 0 && (
+              <span
+                dir="ltr"
+                className="absolute -right-1.5 -top-1.5 flex min-h-5 min-w-5 items-center justify-center rounded-full border border-[#070707] bg-[#d8aa4d] px-1 text-[10px] font-bold text-black"
+              >
+                {cartCount > 99 ? "99+" : cartCount}
+              </span>
+            )}
           </Link>
 
           <Link
@@ -212,6 +270,26 @@ export default function Header() {
             </Link>
 
             <Link
+              href="/cart"
+              onClick={() => setOpen(false)}
+              className="flex items-center justify-between rounded-xl px-4 py-3 text-[#e8c875] hover:bg-[#d8aa4d]/10"
+            >
+              <span className="flex items-center gap-3">
+                <ShoppingCart className="h-5 w-5" />
+                سبد خرید
+              </span>
+
+              {cartCount > 0 && (
+                <span
+                  dir="ltr"
+                  className="rounded-full bg-[#d8aa4d] px-2 py-1 text-xs font-bold text-black"
+                >
+                  {cartCount > 99 ? "99+" : cartCount}
+                </span>
+              )}
+            </Link>
+
+            <Link
               href="/login"
               onClick={() => setOpen(false)}
               className="flex items-center gap-3 rounded-xl px-4 py-3 text-gray-300 hover:bg-[#d8aa4d]/10 hover:text-[#d8aa4d]"
@@ -220,7 +298,6 @@ export default function Header() {
               ورود
             </Link>
 
-            {/* فقط برای ۳ شماره مجاز */}
             {isAdmin && (
               <>
                 <Link
