@@ -38,36 +38,27 @@ export default function Header() {
   const [cartCount, setCartCount] = useState(0);
 
   useEffect(() => {
-    function checkAdmin() {
+    const checkAdmin = () => {
       const phone = normalizePhone(
-        localStorage.getItem(
-          "alfa_kade_phone"
-        ) || ""
+        localStorage.getItem("alfa_kade_phone") || ""
       );
 
       const loggedIn =
-        localStorage.getItem(
-          "alfa_kade_logged_in"
-        ) === "true";
+        localStorage.getItem("alfa_kade_logged_in") === "true";
 
       const adminVerified =
-        localStorage.getItem(
-          "alfa_kade_admin_verified"
-        ) === "true";
+        localStorage.getItem("alfa_kade_admin_verified") === "true";
 
       setIsAdmin(
         loggedIn &&
           adminVerified &&
           ADMIN_NUMBERS.includes(phone)
       );
-    }
+    };
 
-    function updateCartCount() {
+    const updateCartCount = () => {
       try {
-        const raw =
-          localStorage.getItem(
-            "alfa_kade_cart"
-          );
+        const raw = localStorage.getItem("alfa_kade_cart");
 
         if (!raw) {
           setCartCount(0);
@@ -82,17 +73,8 @@ export default function Header() {
         }
 
         const count = cart.reduce(
-          (
-            total: number,
-            item: {
-              quantity?: number;
-            }
-          ) =>
-            total +
-            Math.max(
-              0,
-              Number(item.quantity) || 0
-            ),
+          (total: number, item: { quantity?: number }) =>
+            total + Math.max(0, Number(item.quantity) || 0),
           0
         );
 
@@ -100,37 +82,21 @@ export default function Header() {
       } catch {
         setCartCount(0);
       }
-    }
+    };
 
     checkAdmin();
     updateCartCount();
 
-    window.addEventListener(
-      "storage",
-      checkAdmin
-    );
-
-    window.addEventListener(
-      "storage",
-      updateCartCount
-    );
-
+    window.addEventListener("storage", checkAdmin);
+    window.addEventListener("storage", updateCartCount);
     window.addEventListener(
       "alfa-kade-cart-updated",
       updateCartCount
     );
 
     return () => {
-      window.removeEventListener(
-        "storage",
-        checkAdmin
-      );
-
-      window.removeEventListener(
-        "storage",
-        updateCartCount
-      );
-
+      window.removeEventListener("storage", checkAdmin);
+      window.removeEventListener("storage", updateCartCount);
       window.removeEventListener(
         "alfa-kade-cart-updated",
         updateCartCount
@@ -138,51 +104,50 @@ export default function Header() {
     };
   }, []);
 
-  return (
-    <header className="sticky top-0 z-50 border-b border-[#d8aa4d]/20 bg-[#050505]/95 backdrop-blur">
-      <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4">
+  const closeMenu = () => setOpen(false);
 
+  return (
+    <header className="sticky top-0 z-50 border-b border-yellow-500/20 bg-black/95 backdrop-blur">
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
         <Link
           href="/"
+          onClick={closeMenu}
           className="flex items-center gap-3"
-          onClick={() => setOpen(false)}
         >
           <img
             src={`${BASE_PATH}/alfa-cade.png`}
-            alt="آلفا کده"
-            className="h-12 w-12 rounded-xl object-contain"
+            alt="ALFA KADE"
+            className="h-11 w-11 rounded-xl object-cover"
           />
 
-          <div className="hidden sm:block">
-            <div className="text-lg font-bold text-[#d8aa4d]">
+          <div>
+            <div className="font-bold text-yellow-400">
               ALFA KADE
             </div>
-
-            <div className="text-[11px] text-gray-500">
-              سازنده: نیماحجتی
+            <div className="text-xs text-gray-400">
+              آلفا کده
             </div>
           </div>
         </Link>
 
-        <nav className="hidden items-center gap-1 md:flex">
-
+        <nav className="hidden items-center gap-5 md:flex">
           <Link
             href="/"
-            className="rounded-lg px-3 py-2 text-sm text-gray-300 transition hover:bg-[#d8aa4d]/10 hover:text-[#d8aa4d]"
+            className="text-sm text-gray-200 transition hover:text-yellow-400"
           >
             خانه
           </Link>
 
           <Link
             href="/products"
-            className="rounded-lg px-3 py-2 text-sm text-gray-300 transition hover:bg-[#d8aa4d]/10 hover:text-[#d8aa4d]"
+            className="text-sm text-gray-200 transition hover:text-yellow-400"
           >
             محصولات
           </Link>
 
           <Link
             href="/products/register"
-            className="rounded-lg px-3 py-2 text-sm text-gray-300 transition hover:bg-[#d8aa4d]/10 hover:text-[#d8aa4d]"
+            className="text-sm text-gray-200 transition hover:text-yellow-400"
           >
             ثبت محصول
           </Link>
@@ -191,48 +156,42 @@ export default function Header() {
             <>
               <Link
                 href="/admin"
-                className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-[#e8c875] transition hover:bg-[#d8aa4d]/10"
+                className="flex items-center gap-1 text-sm text-yellow-400"
               >
-                <ShieldCheck className="h-4 w-4" />
+                <ShieldCheck size={17} />
                 مدیریت
               </Link>
 
               <Link
                 href="/settings"
-                className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-300 transition hover:bg-[#d8aa4d]/10 hover:text-[#d8aa4d]"
+                className="flex items-center gap-1 text-sm text-gray-200 hover:text-yellow-400"
               >
-                <Settings className="h-4 w-4" />
+                <Settings size={17} />
                 تنظیمات
               </Link>
             </>
           )}
         </nav>
 
-        <div className="flex items-center gap-2">
-
+        <div className="hidden items-center gap-2 md:flex">
           <Link
             href="/search"
             aria-label="جستجو"
-            className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-[#101010] text-gray-300 transition hover:border-[#d8aa4d]/50 hover:text-[#d8aa4d]"
+            className="rounded-xl p-2 text-gray-200 hover:bg-white/10 hover:text-yellow-400"
           >
-            <Search className="h-5 w-5" />
+            <Search size={21} />
           </Link>
 
           <Link
             href="/cart"
             aria-label="سبد خرید"
-            className="relative flex h-11 w-11 items-center justify-center rounded-xl border border-[#d8aa4d]/40 bg-[#101010] text-[#d8aa4d] transition hover:border-[#d8aa4d] hover:bg-[#d8aa4d]/10"
+            className="relative rounded-xl p-2 text-gray-200 hover:bg-white/10 hover:text-yellow-400"
           >
-            <ShoppingCart className="h-5 w-5" />
+            <ShoppingCart size={21} />
 
             {cartCount > 0 && (
-              <span
-                dir="ltr"
-                className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#d8aa4d] px-1 text-[10px] font-black text-black"
-              >
-                {cartCount > 99
-                  ? "99+"
-                  : cartCount}
+              <span className="absolute -right-1 -top-1 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-yellow-500 px-1 text-[10px] font-bold text-black">
+                {cartCount > 99 ? "99+" : cartCount}
               </span>
             )}
           </Link>
@@ -240,94 +199,76 @@ export default function Header() {
           <Link
             href="/login"
             aria-label="ورود"
-            className="hidden h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-[#101010] text-gray-300 transition hover:border-[#d8aa4d]/50 hover:text-[#d8aa4d] sm:flex"
+            className="rounded-xl p-2 text-gray-200 hover:bg-white/10 hover:text-yellow-400"
           >
-            <User className="h-5 w-5" />
+            <User size={21} />
           </Link>
-
-          <button
-            type="button"
-            aria-label="منو"
-            onClick={() => setOpen(!open)}
-            className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#d8aa4d]/30 bg-[#101010] text-[#d8aa4d] md:hidden"
-          >
-            {open ? (
-              <X className="h-6 w-6" />
-            ) : (
-              <Menu className="h-6 w-6" />
-            )}
-          </button>
         </div>
+
+        <button
+          type="button"
+          onClick={() => setOpen((value) => !value)}
+          className="rounded-xl p-2 text-gray-200 hover:bg-white/10 md:hidden"
+          aria-label="منو"
+        >
+          {open ? <X size={25} /> : <Menu size={25} />}
+        </button>
       </div>
 
       {open && (
-        <div className="border-t border-[#d8aa4d]/20 bg-[#090909] px-4 py-4 md:hidden">
-          <div className="mx-auto max-w-7xl space-y-2">
-
+        <div className="border-t border-yellow-500/10 bg-black px-4 py-4 md:hidden">
+          <div className="mx-auto flex max-w-7xl flex-col gap-2">
             <Link
               href="/"
-              onClick={() => setOpen(false)}
-              className="flex items-center gap-3 rounded-xl px-4 py-3 text-gray-300 hover:bg-[#d8aa4d]/10 hover:text-[#d8aa4d]"
+              onClick={closeMenu}
+              className="rounded-xl px-4 py-3 text-gray-200 hover:bg-white/10"
             >
-              <Package className="h-5 w-5" />
               خانه
             </Link>
 
             <Link
               href="/products"
-              onClick={() => setOpen(false)}
-              className="flex items-center gap-3 rounded-xl px-4 py-3 text-gray-300 hover:bg-[#d8aa4d]/10 hover:text-[#d8aa4d]"
+              onClick={closeMenu}
+              className="rounded-xl px-4 py-3 text-gray-200 hover:bg-white/10"
             >
-              <Package className="h-5 w-5" />
-              همه محصولات
+              محصولات
             </Link>
 
             <Link
               href="/products/register"
-              onClick={() => setOpen(false)}
-              className="flex items-center gap-3 rounded-xl px-4 py-3 text-gray-300 hover:bg-[#d8aa4d]/10 hover:text-[#d8aa4d]"
+              onClick={closeMenu}
+              className="rounded-xl px-4 py-3 text-gray-200 hover:bg-white/10"
             >
-              <Package className="h-5 w-5" />
               ثبت محصول
             </Link>
 
             <Link
               href="/search"
-              onClick={() => setOpen(false)}
-              className="flex items-center gap-3 rounded-xl px-4 py-3 text-gray-300 hover:bg-[#d8aa4d]/10 hover:text-[#d8aa4d]"
+              onClick={closeMenu}
+              className="rounded-xl px-4 py-3 text-gray-200 hover:bg-white/10"
             >
-              <Search className="h-5 w-5" />
-              جستجوی محصولات
+              جستجو
             </Link>
 
             <Link
               href="/cart"
-              onClick={() => setOpen(false)}
-              className="flex items-center justify-between rounded-xl px-4 py-3 text-[#e8c875] hover:bg-[#d8aa4d]/10"
+              onClick={closeMenu}
+              className="flex items-center justify-between rounded-xl px-4 py-3 text-gray-200 hover:bg-white/10"
             >
-              <span className="flex items-center gap-3">
-                <ShoppingCart className="h-5 w-5" />
-                سبد خرید
-              </span>
+              <span>سبد خرید</span>
 
               {cartCount > 0 && (
-                <span
-                  dir="ltr"
-                  className="flex h-6 min-w-6 items-center justify-center rounded-full bg-[#d8aa4d] px-1.5 text-xs font-black text-black"
-                >
-                  {cartCount > 99
-                    ? "99+"
-                    : cartCount}
+                <span className="rounded-full bg-yellow-500 px-2 py-1 text-xs font-bold text-black">
+                  {cartCount}
                 </span>
               )}
             </Link>
 
             <Link
               href="/login"
-              onClick={() => setOpen(false)}
-              className="flex items-center gap-3 rounded-xl px-4 py-3 text-gray-300 hover:bg-[#d8aa4d]/10 hover:text-[#d8aa4d]"
+              onClick={closeMenu}
+              className="rounded-xl px-4 py-3 text-gray-200 hover:bg-white/10"
             >
-              <User className="h-5 w-5" />
               ورود
             </Link>
 
@@ -335,19 +276,17 @@ export default function Header() {
               <>
                 <Link
                   href="/admin"
-                  onClick={() => setOpen(false)}
-                  className="flex items-center gap-3 rounded-xl px-4 py-3 text-[#e8c875] hover:bg-[#d8aa4d]/10"
+                  onClick={closeMenu}
+                  className="rounded-xl px-4 py-3 text-yellow-400 hover:bg-white/10"
                 >
-                  <ShieldCheck className="h-5 w-5" />
                   مدیریت
                 </Link>
 
                 <Link
                   href="/settings"
-                  onClick={() => setOpen(false)}
-                  className="flex items-center gap-3 rounded-xl px-4 py-3 text-gray-300 hover:bg-[#d8aa4d]/10 hover:text-[#d8aa4d]"
+                  onClick={closeMenu}
+                  className="rounded-xl px-4 py-3 text-gray-200 hover:bg-white/10"
                 >
-                  <Settings className="h-5 w-5" />
                   تنظیمات
                 </Link>
               </>
@@ -357,4 +296,4 @@ export default function Header() {
       )}
     </header>
   );
-          }
+      }
