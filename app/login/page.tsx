@@ -1,7 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
-import { LockKeyhole, Smartphone, ShieldCheck } from "lucide-react";
+import {
+  ArrowRight,
+  LockKeyhole,
+  Smartphone,
+  ShieldCheck,
+} from "lucide-react";
 
 const ADMIN_NUMBERS = [
   "09936874192",
@@ -41,7 +47,14 @@ export default function LoginPage() {
 
     setPhone(normalizedPhone);
     setIsAdmin(adminUser);
+    setCode("");
     setError("");
+
+    // جلوگیری از باقی ماندن دسترسی قبلی
+    localStorage.removeItem("alfa_kade_logged_in");
+    localStorage.removeItem("alfa_kade_phone");
+    localStorage.removeItem("alfa_kade_admin_verified");
+
     setStep("code");
   }
 
@@ -58,15 +71,19 @@ export default function LoginPage() {
     localStorage.setItem("alfa_kade_phone", normalizedPhone);
 
     if (adminUser) {
-      localStorage.setItem("alfa_kade_admin_verified", "true");
+      localStorage.setItem(
+        "alfa_kade_admin_verified",
+        "true"
+      );
+      setIsAdmin(true);
     } else {
       localStorage.removeItem("alfa_kade_admin_verified");
+      setIsAdmin(false);
     }
 
     setError("");
-    setIsAdmin(adminUser);
 
-    // ورود به سایت بعد از تأیید کد
+    // بعد از ورود موفق، ورود به سایت
     window.location.href = "/ALFA-KADE/products";
   }
 
@@ -150,6 +167,11 @@ export default function LoginPage() {
                     setCode(e.target.value);
                     setError("");
                   }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      verifyCode();
+                    }
+                  }}
                   maxLength={6}
                   placeholder="1234"
                   className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-4 text-center text-2xl tracking-[0.4em] text-white outline-none focus:border-[#d8aa4d]"
@@ -188,13 +210,34 @@ export default function LoginPage() {
                 تأیید و ورود
               </button>
 
+              {isAdmin && (
+                <Link
+                  href="/admin"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#d8aa4d] bg-[#d8aa4d]/10 px-5 py-4 font-bold text-[#e8c875] transition hover:bg-[#d8aa4d]/20"
+                >
+                  <ShieldCheck className="h-5 w-5" />
+                  ورود به بخش مدیریت
+                </Link>
+              )}
+
               <button
                 type="button"
                 onClick={() => {
                   setStep("phone");
+                  setPhone("");
                   setCode("");
-                  setError("");
                   setIsAdmin(false);
+                  setError("");
+
+                  localStorage.removeItem(
+                    "alfa_kade_logged_in"
+                  );
+                  localStorage.removeItem(
+                    "alfa_kade_phone"
+                  );
+                  localStorage.removeItem(
+                    "alfa_kade_admin_verified"
+                  );
                 }}
                 className="w-full text-sm text-gray-500 transition hover:text-[#d8aa4d]"
               >
@@ -210,6 +253,16 @@ export default function LoginPage() {
             </p>
           </div>
 
+          {step === "code" && (
+            <Link
+              href="/"
+              className="mt-6 flex items-center justify-center gap-2 text-sm text-gray-400 transition hover:text-[#d8aa4d]"
+            >
+              <ArrowRight className="h-4 w-4" />
+              بازگشت
+            </Link>
+          )}
+
           <div className="mt-8 text-center text-sm text-zinc-600">
             سازنده این سایت: نیما حجتی
           </div>
@@ -217,4 +270,4 @@ export default function LoginPage() {
       </div>
     </main>
   );
-}
+                         }
