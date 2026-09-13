@@ -1,37 +1,16 @@
-insert into public.products (
-  name,
-  slug,
-  description,
-  category,
-  image_url
-)
-values
-(
-  'محصول نمونه آلفا کده',
-  'alfa-kade-sample-product',
-  'این یک محصول نمونه برای آزمایش اولیه سایت است.',
-  'نمونه',
-  null
-)
+insert into public.categories (name, slug, sort_order) values
+  ('گوشی موبایل', 'mobile', 1),
+  ('کامپیوتر', 'computer', 2),
+  ('لپ‌تاپ', 'laptop', 3),
+  ('تبلت', 'tablet', 4),
+  ('ساعت هوشمند', 'smartwatch', 5),
+  ('هدفون و هندزفری', 'headphone', 6),
+  ('اسپیکر', 'speaker', 7),
+  ('دوربین', 'camera', 8),
+  ('لوازم جانبی', 'accessories', 9),
+  ('کنسول و بازی', 'gaming', 10),
+  ('تلویزیون', 'tv', 11),
+  ('لوازم خانگی', 'home-appliance', 12),
+  ('پوشاک', 'clothing', 13),
+  ('دیجیتال', 'digital', 14)
 on conflict (slug) do nothing;
-
-insert into public.product_offers (
-  product_id,
-  seller_name,
-  seller_phone,
-  website_url,
-  price
-)
-select
-  id,
-  'فروشگاه نمونه',
-  '09120000000',
-  'https://example.com',
-  25000000
-from public.products
-where slug = 'alfa-kade-sample-product'
-and not exists (
-  select 1
-  from public.product_offers
-  where product_id = public.products.id
-);
