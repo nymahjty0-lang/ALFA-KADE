@@ -9,6 +9,7 @@ import {
   User,
   Settings,
   Package,
+  ShieldCheck,
 } from "lucide-react";
 
 const BASE_PATH = "/ALFA-KADE";
@@ -35,27 +36,38 @@ export default function Header() {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    const phone = normalizePhone(
-      localStorage.getItem("alfa_kade_phone") || ""
-    );
+    function checkAdmin() {
+      const phone = normalizePhone(
+        localStorage.getItem("alfa_kade_phone") || ""
+      );
 
-    const loggedIn =
-      localStorage.getItem("alfa_kade_logged_in") === "true";
+      const loggedIn =
+        localStorage.getItem("alfa_kade_logged_in") === "true";
 
-    const adminVerified =
-      localStorage.getItem("alfa_kade_admin_verified") === "true";
+      const adminVerified =
+        localStorage.getItem("alfa_kade_admin_verified") === "true";
 
-    setIsAdmin(
-      loggedIn &&
-      adminVerified &&
-      ADMIN_NUMBERS.includes(phone)
-    );
+      setIsAdmin(
+        loggedIn &&
+        adminVerified &&
+        ADMIN_NUMBERS.includes(phone)
+      );
+    }
+
+    checkAdmin();
+
+    window.addEventListener("storage", checkAdmin);
+
+    return () => {
+      window.removeEventListener("storage", checkAdmin);
+    };
   }, []);
 
   return (
     <header className="sticky top-0 z-50 border-b border-[#d8aa4d]/20 bg-[#050505]/95 backdrop-blur">
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4">
 
+        {/* لوگو */}
         <Link
           href="/"
           className="flex items-center gap-3"
@@ -78,6 +90,7 @@ export default function Header() {
           </div>
         </Link>
 
+        {/* منوی دسکتاپ */}
         <nav className="hidden items-center gap-2 md:flex">
 
           <Link
@@ -101,17 +114,29 @@ export default function Header() {
             ثبت محصول
           </Link>
 
+          {/* فقط مدیران */}
           {isAdmin && (
-            <Link
-              href="/admin"
-              className="rounded-lg px-4 py-2 text-sm text-[#d8aa4d] transition hover:bg-[#d8aa4d]/10"
-            >
-              مدیریت و تنظیمات
-            </Link>
-          )}
+            <>
+              <Link
+                href="/admin"
+                className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm text-[#e8c875] transition hover:bg-[#d8aa4d]/10"
+              >
+                <ShieldCheck className="h-4 w-4" />
+                مدیریت
+              </Link>
 
+              <Link
+                href="/settings"
+                className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm text-gray-300 transition hover:bg-[#d8aa4d]/10 hover:text-[#d8aa4d]"
+              >
+                <Settings className="h-4 w-4" />
+                تنظیمات
+              </Link>
+            </>
+          )}
         </nav>
 
+        {/* دکمه‌های سمت چپ */}
         <div className="flex items-center gap-2">
 
           <Link
@@ -142,10 +167,10 @@ export default function Header() {
               <Menu className="h-6 w-6" />
             )}
           </button>
-
         </div>
       </div>
 
+      {/* منوی موبایل */}
       {open && (
         <div className="border-t border-[#d8aa4d]/20 bg-[#090909] px-4 py-4 md:hidden">
           <div className="mx-auto max-w-7xl space-y-2">
@@ -195,15 +220,27 @@ export default function Header() {
               ورود
             </Link>
 
+            {/* فقط برای ۳ شماره مجاز */}
             {isAdmin && (
-              <Link
-                href="/admin"
-                onClick={() => setOpen(false)}
-                className="flex items-center gap-3 rounded-xl px-4 py-3 text-[#d8aa4d] hover:bg-[#d8aa4d]/10"
-              >
-                <Settings className="h-5 w-5" />
-                مدیریت و تنظیمات
-              </Link>
+              <>
+                <Link
+                  href="/admin"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-3 rounded-xl px-4 py-3 text-[#e8c875] hover:bg-[#d8aa4d]/10"
+                >
+                  <ShieldCheck className="h-5 w-5" />
+                  مدیریت
+                </Link>
+
+                <Link
+                  href="/settings"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-3 rounded-xl px-4 py-3 text-gray-300 hover:bg-[#d8aa4d]/10 hover:text-[#d8aa4d]"
+                >
+                  <Settings className="h-5 w-5" />
+                  تنظیمات
+                </Link>
+              </>
             )}
 
           </div>
@@ -211,4 +248,4 @@ export default function Header() {
       )}
     </header>
   );
-      }
+        }
