@@ -7,9 +7,10 @@ import { supabase } from "@/lib/supabase";
 
 type Product = {
   id: string;
-  title: string;
+  name: string;
   slug: string;
   image_url: string | null;
+  category: string | null;
 };
 
 export default function SearchPage() {
@@ -18,11 +19,15 @@ export default function SearchPage() {
   const [query, setQuery] = useState("");
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(
+      window.location.search
+    );
+
     const initialQuery = params.get("q") || "";
 
     setQuery(initialQuery);
-    searchProducts(initialQuery);
+
+    void searchProducts(initialQuery);
   }, []);
 
   async function searchProducts(value: string) {
@@ -36,59 +41,69 @@ export default function SearchPage() {
 
     let request = supabase
       .from("products")
-      .select("id, title, slug, image_url")
-      .order("title", { ascending: true })
+      .select(
+        "id, name, slug, image_url, category"
+      )
+      .order("name", {
+        ascending: true,
+      })
       .limit(100);
 
     if (value.trim()) {
-      request = request.ilike("title", `%${value.trim()}%`);
+      request = request.ilike(
+        "name",
+        `%${value.trim()}%`
+      );
     }
 
     const { data, error } = await request;
 
     if (error) {
-      console.error(error);
+      console.error("Search error:", error);
       setProducts([]);
     } else {
-      setProducts(data || []);
+      setProducts((data ?? []) as Product[]);
     }
 
     setLoading(false);
   }
 
-  function handleSearch(event: React.FormEvent) {
+  function handleSearch(
+    event: React.FormEvent<HTMLFormElement>
+  ) {
     event.preventDefault();
 
     const value = query.trim();
 
-    if (value) {
-      window.history.pushState(
-        {},
-        "",
-        `/search?q=${encodeURIComponent(value)}`
-      );
-    } else {
-      window.history.pushState({}, "", "/search");
-    }
+    const url = value
+      ? `/ALFA-KADE/search?q=${encodeURIComponent(
+          value
+        )}`
+      : "/ALFA-KADE/search";
 
-    searchProducts(value);
+    window.history.pushState({}, "", url);
+
+    void searchProducts(value);
   }
 
   return (
-    <main className="min-h-screen bg-[#070707] px-4 py-10">
+    <main
+      dir="rtl"
+      className="min-h-screen bg-[#070707] px-4 py-10 text-white"
+    >
       <div className="mx-auto max-w-7xl">
-
         <div className="mb-8 text-center">
           <div className="mb-3 inline-block rounded-full border border-[#3a2e18] bg-[#0d0d0d] px-5 py-2 text-sm text-[#d8aa4d]">
             ALFA KADE
           </div>
 
-          <h1 className="text-3xl font-black text-white md:text-5xl">
+          <h1 className="text-3xl font-black md:text-5xl">
             جستجوی محصولات
           </h1>
 
           <p className="mt-3 text-sm text-gray-500">
-            محصول موردنظر خود را پیدا کنید و قیمت فروشندگان را مقایسه کنید.
+            محصول موردنظر خود را پیدا کنید و قیمت فروشندگان را
+            مقایسه کنید.
           </p>
         </div>
 
@@ -99,16 +114,17 @@ export default function SearchPage() {
           <div className="relative">
             <input
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(event) =>
+                setQuery(event.target.value)
+              }
               type="search"
               placeholder="مثلاً آیفون، لپ‌تاپ، تلویزیون..."
-              className="w-full rounded-2xl border border-[#3a2e18] bg-[#101010] px-5 py-4 pl-28 text-right text-white outline-none placeholder:text-gray-600 focus:border-[#d8aa4d]"
+              className="w-full rounded-2xl border border-[#3a2e18] bg-[#101010] px-5 py-4 pl-28 text-white outline-none placeholder:text-gray-600 focus:border-[#d8aa4d]"
             />
 
             <button
               type="submit"
-              className="absolute left-2 top-1/2 flex -translate-y-1/2 items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold text-black"
-              style={{ background: "#d8aa4d" }}
+              className="absolute left-2 top-1/2 flex -translate-y-1/2 items-center gap-2 rounded-xl bg-[#d8aa4d] px-5 py-2.5 text-sm font-bold text-black"
             >
               <Search size={17} />
               جستجو
@@ -117,7 +133,7 @@ export default function SearchPage() {
         </form>
 
         <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-white">
+          <h2 className="text-xl font-bold">
             {query
               ? `نتایج جستجو برای «${query}»`
               : "همه محصولات"}
@@ -148,13 +164,12 @@ export default function SearchPage() {
             </h3>
 
             <p className="mt-2 text-sm text-gray-600">
-              نام محصول دیگری را جستجو کنید یا اولین محصول را ثبت کنید.
+              نام محصول دیگری را جستجو کنید.
             </p>
 
             <Link
               href="/products/register"
-              className="mt-6 inline-block rounded-xl px-6 py-3 text-sm font-bold text-black"
-              style={{ background: "#d8aa4d" }}
+              className="mt-6 inline-block rounded-xl bg-[#d8aa4d] px-6 py-3 text-sm font-bold text-black"
             >
               ثبت محصول
             </Link>
@@ -164,14 +179,16 @@ export default function SearchPage() {
             {products.map((product) => (
               <Link
                 key={product.id}
-                href={`/products?slug=${encodeURIComponent(product.slug)}`}
+                href={`/products?slug=${encodeURIComponent(
+                  product.slug
+                )}`}
                 className="group overflow-hidden rounded-2xl border border-[#2d2414] bg-[#0c0c0c] transition hover:-translate-y-1 hover:border-[#d8aa4d]"
               >
                 <div className="flex h-48 items-center justify-center bg-[#090909] p-4">
                   {product.image_url ? (
                     <img
                       src={product.image_url}
-                      alt={product.title}
+                      alt={product.name}
                       className="h-full w-full object-contain"
                     />
                   ) : (
@@ -183,20 +200,25 @@ export default function SearchPage() {
                 </div>
 
                 <div className="p-4">
-                  <h3 className="line-clamp-2 min-h-12 text-sm font-bold leading-6 text-gray-200 transition group-hover:text-[#d8aa4d]">
-                    {product.title}
+                  <h3 className="min-h-12 text-sm font-bold leading-6 text-gray-200 group-hover:text-[#d8aa4d]">
+                    {product.name}
                   </h3>
 
-                  <div className="mt-3 text-xs text-gray-600">
+                  {product.category && (
+                    <p className="mt-2 text-xs text-gray-600">
+                      {product.category}
+                    </p>
+                  )}
+
+                  <p className="mt-3 text-xs text-gray-600">
                     مشاهده قیمت‌ها
-                  </div>
+                  </p>
                 </div>
               </Link>
             ))}
           </div>
         )}
-
       </div>
     </main>
   );
-}
+              }
