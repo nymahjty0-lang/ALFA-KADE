@@ -8,12 +8,9 @@ import {
   X,
   User,
   Settings,
-  Package,
   ShieldCheck,
   ShoppingCart,
 } from "lucide-react";
-
-const BASE_PATH = "/ALFA-KADE";
 
 const ADMIN_NUMBERS = [
   "09936874192",
@@ -38,43 +35,57 @@ export default function Header() {
   const [cartCount, setCartCount] = useState(0);
 
   useEffect(() => {
-    const checkAdmin = () => {
+    function checkAdmin() {
       const phone = normalizePhone(
-        localStorage.getItem("alfa_kade_phone") || ""
+        localStorage.getItem(
+          "alfa_kade_phone"
+        ) || ""
       );
 
       const loggedIn =
-        localStorage.getItem("alfa_kade_logged_in") === "true";
+        localStorage.getItem(
+          "alfa_kade_logged_in"
+        ) === "true";
 
-      const adminVerified =
-        localStorage.getItem("alfa_kade_admin_verified") === "true";
+      const verified =
+        localStorage.getItem(
+          "alfa_kade_admin_verified"
+        ) === "true";
 
       setIsAdmin(
         loggedIn &&
-          adminVerified &&
+          verified &&
           ADMIN_NUMBERS.includes(phone)
       );
-    };
+    }
 
-    const updateCartCount = () => {
+    function updateCart() {
       try {
-        const raw = localStorage.getItem("alfa_kade_cart");
+        const raw =
+          localStorage.getItem("alfa_kade_cart");
 
         if (!raw) {
           setCartCount(0);
           return;
         }
 
-        const cart = JSON.parse(raw);
+        const parsed = JSON.parse(raw);
 
-        if (!Array.isArray(cart)) {
+        if (!Array.isArray(parsed)) {
           setCartCount(0);
           return;
         }
 
-        const count = cart.reduce(
-          (total: number, item: { quantity?: number }) =>
-            total + Math.max(0, Number(item.quantity) || 0),
+        const count = parsed.reduce(
+          (
+            total: number,
+            item: { quantity?: number }
+          ) =>
+            total +
+            Math.max(
+              0,
+              Number(item.quantity) || 0
+            ),
           0
         );
 
@@ -82,29 +93,47 @@ export default function Header() {
       } catch {
         setCartCount(0);
       }
-    };
+    }
 
     checkAdmin();
-    updateCartCount();
+    updateCart();
 
-    window.addEventListener("storage", checkAdmin);
-    window.addEventListener("storage", updateCartCount);
+    window.addEventListener(
+      "storage",
+      checkAdmin
+    );
+
+    window.addEventListener(
+      "storage",
+      updateCart
+    );
+
     window.addEventListener(
       "alfa-kade-cart-updated",
-      updateCartCount
+      updateCart
     );
 
     return () => {
-      window.removeEventListener("storage", checkAdmin);
-      window.removeEventListener("storage", updateCartCount);
+      window.removeEventListener(
+        "storage",
+        checkAdmin
+      );
+
+      window.removeEventListener(
+        "storage",
+        updateCart
+      );
+
       window.removeEventListener(
         "alfa-kade-cart-updated",
-        updateCartCount
+        updateCart
       );
     };
   }, []);
 
-  const closeMenu = () => setOpen(false);
+  function closeMenu() {
+    setOpen(false);
+  }
 
   return (
     <header className="sticky top-0 z-50 border-b border-yellow-500/20 bg-black/95 backdrop-blur">
@@ -115,7 +144,7 @@ export default function Header() {
           className="flex items-center gap-3"
         >
           <img
-            src={`${BASE_PATH}/alfa-cade.png`}
+            src="/ALFA-KADE/alfa-cade.png"
             alt="ALFA KADE"
             className="h-11 w-11 rounded-xl object-cover"
           />
@@ -124,6 +153,7 @@ export default function Header() {
             <div className="font-bold text-yellow-400">
               ALFA KADE
             </div>
+
             <div className="text-xs text-gray-400">
               آلفا کده
             </div>
@@ -133,21 +163,21 @@ export default function Header() {
         <nav className="hidden items-center gap-5 md:flex">
           <Link
             href="/"
-            className="text-sm text-gray-200 transition hover:text-yellow-400"
+            className="text-sm text-gray-200 hover:text-yellow-400"
           >
             خانه
           </Link>
 
           <Link
             href="/products"
-            className="text-sm text-gray-200 transition hover:text-yellow-400"
+            className="text-sm text-gray-200 hover:text-yellow-400"
           >
             محصولات
           </Link>
 
           <Link
             href="/products/register"
-            className="text-sm text-gray-200 transition hover:text-yellow-400"
+            className="text-sm text-gray-200 hover:text-yellow-400"
           >
             ثبت محصول
           </Link>
@@ -191,7 +221,9 @@ export default function Header() {
 
             {cartCount > 0 && (
               <span className="absolute -right-1 -top-1 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-yellow-500 px-1 text-[10px] font-bold text-black">
-                {cartCount > 99 ? "99+" : cartCount}
+                {cartCount > 99
+                  ? "99+"
+                  : cartCount}
               </span>
             )}
           </Link>
@@ -207,11 +239,17 @@ export default function Header() {
 
         <button
           type="button"
-          onClick={() => setOpen((value) => !value)}
+          onClick={() =>
+            setOpen((value) => !value)
+          }
           className="rounded-xl p-2 text-gray-200 hover:bg-white/10 md:hidden"
           aria-label="منو"
         >
-          {open ? <X size={25} /> : <Menu size={25} />}
+          {open ? (
+            <X size={25} />
+          ) : (
+            <Menu size={25} />
+          )}
         </button>
       </div>
 
@@ -296,4 +334,4 @@ export default function Header() {
       )}
     </header>
   );
-      }
+}
