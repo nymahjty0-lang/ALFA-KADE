@@ -1,82 +1,66 @@
 "use client";
 
-import { FormEvent, useState } from "react";
 import Link from "next/link";
-import {
-  ArrowRight,
-  Upload,
-  Globe,
-  Store,
-  CheckCircle2,
-} from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { FormEvent, useState } from "react";
+import { ArrowRight, PackagePlus, Globe2, Store } from "lucide-react";
 
+const BASE_PATH = "/ALFA-KADE";
 const MAX_PRICE = 500_000_000;
 
-export default function RegisterProductPage() {
-  const [mode, setMode] = useState<"website" | "direct">("website");
+function normalizeDigits(value: string) {
+  return value
+    .replace(/[۰-۹]/g, (digit) =>
+      String("۰۱۲۳۴۵۶۷۸۹".indexOf(digit))
+    )
+    .replace(/[٠-٩]/g, (digit) =>
+      String("٠١٢٣٤٥٦٧٨٩".indexOf(digit))
+    );
+}
 
-  const [fullName, setFullName] = useState("");
+function normalizePhone(value: string) {
+  return normalizeDigits(value).replace(/\D/g, "");
+}
+
+export default function RegisterProductPage() {
+  const [mode, setMode] = useState<"direct" | "website">("direct");
+  const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [nationalId, setNationalId] = useState("");
   const [birthDate, setBirthDate] = useState("");
-
   const [productName, setProductName] = useState("");
   const [price, setPrice] = useState("");
-  const [sellerName, setSellerName] = useState("");
-  const [sellerWebsite, setSellerWebsite] = useState("");
-  const [sellerPhone, setSellerPhone] = useState("");
-
-  const [image, setImage] = useState<File | null>(null);
-
-  const [loading, setLoading] = useState(false);
+  const [website, setWebsite] = useState("");
+  const [seller, setSeller] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
-  function cleanPrice(value: string) {
-    return value.replace(/[^\d]/g, "");
-  }
-
-  function formatPrice(value: string) {
-    const number = Number(cleanPrice(value));
-
-    if (!number) return "";
-
-    return new Intl.NumberFormat("fa-IR").format(number);
-  }
-
-  function makeSlug(title: string) {
-    return (
-      title
-        .trim()
-        .toLowerCase()
-        .replace(/\s+/g, "-")
-        .replace(/[^\w\u0600-\u06FF-]+/g, "") +
-      "-" +
-      Date.now()
-    );
-  }
-
-  async function handleSubmit(event: FormEvent) {
+  function submitForm(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     setError("");
     setMessage("");
 
-    const numericPrice = Number(cleanPrice(price));
+    const normalizedPhone = normalizePhone(phone);
+    const normalizedNationalId = normalizeDigits(nationalId).replace(
+      /\D/g,
+      ""
+    );
+    const numericPrice = Number(
+      normalizeDigits(price).replace(/[^\d]/g, "")
+    );
 
-    if (!fullName.trim()) {
+    if (!name.trim()) {
       setError("نام و نام خانوادگی را وارد کنید.");
       return;
     }
 
-    if (!phone.trim()) {
-      setError("شماره موبایل را وارد کنید.");
+    if (!/^09\d{9}$/.test(normalizedPhone)) {
+      setError("شماره موبایل معتبر نیست.");
       return;
     }
 
-    if (!nationalId.trim()) {
-      setError("کد ملی را وارد کنید.");
+    if (normalizedNationalId.length !== 10) {
+      setError("کد ملی باید ۱۰ رقم باشد.");
       return;
     }
 
@@ -90,8 +74,8 @@ export default function RegisterProductPage() {
       return;
     }
 
-    if (!numericPrice || numericPrice <= 0) {
-      setError("قیمت محصول را به‌درستی وارد کنید.");
+    if (!Number.isFinite(numericPrice) || numericPrice <= 0) {
+      setError("قیمت محصول باید بیشتر از صفر باشد.");
       return;
     }
 
@@ -100,217 +84,169 @@ export default function RegisterProductPage() {
       return;
     }
 
-    if (!sellerName.trim()) {
+    if (!seller.trim()) {
       setError("نام فروشنده یا فروشگاه را وارد کنید.");
       return;
     }
 
-    if (mode === "website" && !sellerWebsite.trim()) {
-      setError("آدرس سایت فروشنده را وارد کنید.");
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      // بررسی اینکه محصول از قبل ثبت شده یا نه
-      const { data: existingProduct } = await supabase
-        .from("products")
-        .select("id, title, slug, image_url")
-        .ilike("title", productName.trim())
-        .maybeSingle();
-
-      let productId = existingProduct?.id;
-      let productSlug = existingProduct?.slug;
-
-      // اگر محصول جدید باشد
-      if (!existingProduct) {
-        if (!image) {
-          setError(
-            "برای محصول جدید باید تصویر محصول را انتخاب کنید."
-          );
-          setLoading(false);
-          return;
-        }
-
-        const slug = makeSlug(productName);
-
-        const fileName = `${Date.now()}-${image.name.replace(
-          /[^a-zA-Z0-9._-]/g,
-          "-"
-        )}`;
-
-        const filePath = `products/${fileName}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from("product-images")
-          .upload(filePath, image);
-
-        if (uploadError) {
-          console.error(uploadError);
-          setError("آپلود تصویر انجام نشد.");
-          setLoading(false);
-          return;
-        }
-
-        const { data: publicUrlData } = supabase.storage
-          .from("product-images")
-          .getPublicUrl(filePath);
-
-        const { data: newProduct, error: productError } =
-          await supabase
-            .from("products")
-            .insert({
-              title: productName.trim(),
-              slug,
-              image_url: publicUrlData.publicUrl,
-            })
-            .select("id, slug")
-            .single();
-
-        if (productError || !newProduct) {
-          console.error(productError);
-          setError("ثبت محصول انجام نشد.");
-          setLoading(false);
-          return;
-        }
-
-        productId = newProduct.id;
-        productSlug = newProduct.slug;
-      }
-
-      if (!productId) {
-        setError("شناسه محصول پیدا نشد.");
-        setLoading(false);
+    if (mode === "website") {
+      if (!website.trim()) {
+        setError("آدرس سایت را وارد کنید.");
         return;
       }
 
-      // پیدا کردن یا ساخت فروشنده
-      let sellerId: string | null = null;
-
-      const { data: existingSeller } = await supabase
-        .from("sellers")
-        .select("id")
-        .eq("name", sellerName.trim())
-        .maybeSingle();
-
-      if (existingSeller) {
-        sellerId = existingSeller.id;
-      } else {
-        const { data: newSeller, error: sellerError } =
-          await supabase
-            .from("sellers")
-            .insert({
-              name: sellerName.trim(),
-              phone: sellerPhone.trim() || null,
-              website:
-                mode === "website"
-                  ? sellerWebsite.trim()
-                  : null,
-            })
-            .select("id")
-            .single();
-
-        if (sellerError || !newSeller) {
-          console.error(sellerError);
-          setError("ثبت اطلاعات فروشنده انجام نشد.");
-          setLoading(false);
-          return;
+      try {
+        const url = new URL(website);
+        if (!["http:", "https:"].includes(url.protocol)) {
+          throw new Error();
         }
-
-        sellerId = newSeller.id;
-      }
-
-      // ثبت قیمت
-      const { error: offerError } = await supabase
-        .from("offers")
-        .insert({
-          product_id: productId,
-          seller_id: sellerId,
-          price: numericPrice,
-          seller_url:
-            mode === "website"
-              ? sellerWebsite.trim()
-              : null,
-          source_type: mode,
-        });
-
-      if (offerError) {
-        console.error(offerError);
-        setError(
-          "قیمت ثبت نشد. ممکن است این فروشنده قبلاً برای محصول ثبت شده باشد."
-        );
-        setLoading(false);
+      } catch {
+        setError("آدرس سایت معتبر نیست.");
         return;
       }
-
-      setMessage("محصول و قیمت با موفقیت ثبت شد.");
-
-      // پاک کردن فرم
-      setProductName("");
-      setPrice("");
-      setSellerName("");
-      setSellerWebsite("");
-      setSellerPhone("");
-      setImage(null);
-
-      if (productSlug) {
-        setTimeout(() => {
-          window.location.href = `/products/${productSlug}`;
-        }, 1500);
-      }
-    } catch (err) {
-      console.error(err);
-      setError("خطایی رخ داد. دوباره تلاش کنید.");
-    } finally {
-      setLoading(false);
     }
+
+    const pendingProducts = JSON.parse(
+      localStorage.getItem("alfa_kade_pending_products") || "[]"
+    );
+
+    pendingProducts.push({
+      id: `local-${Date.now()}`,
+      name: productName.trim(),
+      price: numericPrice,
+      seller: seller.trim(),
+      website: mode === "website" ? website.trim() : null,
+      registrationMode: mode,
+      registrant: {
+        name: name.trim(),
+        phone: normalizedPhone,
+        nationalId: normalizedNationalId,
+        birthDate,
+      },
+      createdAt: new Date().toISOString(),
+    });
+
+    localStorage.setItem(
+      "alfa_kade_pending_products",
+      JSON.stringify(pendingProducts)
+    );
+
+    setMessage(
+      "محصول با موفقیت برای ثبت اولیه ذخیره شد. اتصال به پایگاه داده و بررسی نهایی در مرحله بعد انجام می‌شود."
+    );
+
+    setName("");
+    setPhone("");
+    setNationalId("");
+    setBirthDate("");
+    setProductName("");
+    setPrice("");
+    setWebsite("");
+    setSeller("");
   }
 
   return (
-    <main className="min-h-screen bg-[#070707] px-4 py-8 md:py-12">
-      <div className="mx-auto max-w-4xl">
+    <main
+      dir="rtl"
+      className="min-h-screen bg-[#070707] text-white px-4 py-8"
+    >
+      <div className="mx-auto max-w-3xl">
+        <div className="mb-6 flex items-center justify-between gap-3">
+          <Link
+            href={`${BASE_PATH}/products`}
+            className="inline-flex items-center gap-2 rounded-xl border border-[#3f331c] px-4 py-2 text-sm text-gray-300 transition hover:border-[#d8aa4d] hover:text-white"
+          >
+            بازگشت
+            <ArrowRight size={18} />
+          </Link>
 
-        {/* Back */}
-        <Link
-          href="/products"
-          className="mb-6 inline-flex items-center gap-2 text-sm text-gray-500 transition hover:text-[#d8aa4d]"
-        >
-          <ArrowRight size={18} />
-          بازگشت به محصولات
-        </Link>
+          <div className="flex items-center gap-3">
+            <img
+              src={`${BASE_PATH}/alfa-cade.png`}
+              alt="ALFA KADE"
+              className="h-12 w-12 rounded-xl border border-[#8f6f2d] object-cover"
+            />
 
-        {/* Header */}
-        <div className="mb-8 text-center">
-          <div className="mb-3 inline-block rounded-full border border-[#3a2e18] bg-[#0d0d0d] px-5 py-2 text-sm text-[#d8aa4d]">
-            ALFA KADE
+            <div>
+              <h1 className="font-bold text-[#d8aa4d]">
+                ثبت محصول
+              </h1>
+              <p className="text-xs text-gray-500">
+                ALFA KADE
+              </p>
+            </div>
           </div>
-
-          <h1 className="text-3xl font-black text-white md:text-4xl">
-            ثبت محصول و قیمت
-          </h1>
-
-          <p className="mt-3 text-sm leading-7 text-gray-500">
-            محصول جدید را ثبت کنید یا قیمت خود را به محصول موجود اضافه کنید.
-          </p>
         </div>
 
-        <form
-          onSubmit={handleSubmit}
-          className="rounded-3xl border border-[#2d2414] bg-[#0c0c0c] p-5 md:p-8"
-        >
+        <div className="rounded-3xl border border-[#3d301a] bg-[#0d0d0d] p-5 shadow-2xl sm:p-7">
+          <div className="mb-7 flex items-center gap-3">
+            <div className="rounded-2xl bg-[#17130b] p-3 text-[#d8aa4d]">
+              <PackagePlus size={26} />
+            </div>
 
-          {/* Personal info */}
-          <section>
-            <h2 className="mb-5 text-xl font-black text-white">
-              اطلاعات ثبت‌کننده
-            </h2>
+            <div>
+              <h2 className="text-xl font-bold">
+                اطلاعات محصول و ثبت‌کننده
+              </h2>
+              <p className="mt-1 text-sm text-gray-500">
+                اطلاعات را دقیق وارد کنید.
+              </p>
+            </div>
+          </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
+          <div className="mb-7 grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setMode("direct")}
+              className={`rounded-2xl border p-4 text-right transition ${
+                mode === "direct"
+                  ? "border-[#d8aa4d] bg-[#181207]"
+                  : "border-[#302a20] bg-black"
+              }`}
+            >
+              <Store
+                size={22}
+                className="mb-2 text-[#d8aa4d]"
+              />
+              <div className="font-bold">
+                ثبت بدون سایت
+              </div>
+              <div className="mt-1 text-xs text-gray-500">
+                فروش مستقیم
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setMode("website")}
+              className={`rounded-2xl border p-4 text-right transition ${
+                mode === "website"
+                  ? "border-[#d8aa4d] bg-[#181207]"
+                  : "border-[#302a20] bg-black"
+              }`}
+            >
+              <Globe2
+                size={22}
+                className="mb-2 text-[#d8aa4d]"
+              />
+              <div className="font-bold">
+                اتصال به سایت
+              </div>
+              <div className="mt-1 text-xs text-gray-500">
+                ثبت همراه آدرس فروشگاه
+              </div>
+            </button>
+          </div>
+
+          <form
+            onSubmit={submitForm}
+            className="space-y-5"
+          >
+            <div className="grid gap-4 sm:grid-cols-2">
               <Field
                 label="نام و نام خانوادگی"
-                value={fullName}
-                onChange={setFullName}
+                value={name}
+                onChange={setName}
                 placeholder="مثلاً نیما حجتی"
               />
 
@@ -318,235 +254,105 @@ export default function RegisterProductPage() {
                 label="شماره موبایل"
                 value={phone}
                 onChange={setPhone}
-                placeholder="مثلاً 09121234567"
-                type="tel"
+                placeholder="09123456789"
+                inputMode="tel"
               />
 
               <Field
                 label="کد ملی"
                 value={nationalId}
                 onChange={setNationalId}
-                placeholder="۱۰ رقمی"
+                placeholder="۱۰ رقم"
+                inputMode="numeric"
+                maxLength={10}
               />
 
-              <Field
-                label="تاریخ تولد"
-                value={birthDate}
-                onChange={setBirthDate}
-                type="date"
-              />
-            </div>
-          </section>
-
-          <div className="my-8 h-px bg-[#211b10]" />
-
-          {/* Product */}
-          <section>
-            <h2 className="mb-5 text-xl font-black text-white">
-              اطلاعات محصول
-            </h2>
-
-            <Field
-              label="نام محصول"
-              value={productName}
-              onChange={setProductName}
-              placeholder="مثلاً iPhone 17 Pro Max"
-            />
-
-            <div className="mt-4">
-              <label className="mb-2 block text-sm font-bold text-gray-300">
-                قیمت محصول
-              </label>
-
-              <div className="relative">
+              <div>
+                <label className="mb-2 block text-sm text-gray-300">
+                  تاریخ تولد
+                </label>
                 <input
-                  value={formatPrice(price)}
+                  type="date"
+                  value={birthDate}
                   onChange={(e) =>
-                    setPrice(cleanPrice(e.target.value))
+                    setBirthDate(e.target.value)
                   }
-                  inputMode="numeric"
-                  placeholder="مثلاً ۱۲۵,۰۰۰,۰۰۰"
-                  className="w-full rounded-xl border border-[#3a2e18] bg-[#101010] px-4 py-3 pl-16 text-right text-white outline-none placeholder:text-gray-600 focus:border-[#d8aa4d]"
+                  className="w-full rounded-2xl border border-[#40331d] bg-black px-4 py-3.5 text-white outline-none transition focus:border-[#d8aa4d]"
                 />
-
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs text-gray-600">
-                  تومان
-                </span>
               </div>
-
-              <p className="mt-2 text-xs text-gray-600">
-                حداکثر قیمت قابل ثبت: ۵۰۰,۰۰۰,۰۰۰ تومان
-              </p>
             </div>
 
-            {/* Image */}
-            <div className="mt-4">
-              <label className="mb-2 block text-sm font-bold text-gray-300">
-                تصویر محصول
-              </label>
+            <div className="border-t border-[#242424] pt-5">
+              <h3 className="mb-4 font-bold text-[#d8aa4d]">
+                اطلاعات محصول
+              </h3>
 
-              <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-[#3a2e18] bg-[#090909] px-5 py-8 text-center transition hover:border-[#d8aa4d]">
-                <Upload size={30} className="mb-3 text-[#d8aa4d]" />
-
-                <span className="text-sm font-bold text-gray-300">
-                  {image
-                    ? image.name
-                    : "برای محصول جدید تصویر انتخاب کنید"}
-                </span>
-
-                <span className="mt-2 text-xs text-gray-600">
-                  اگر محصول قبلاً ثبت شده باشد، نیازی به آپلود تصویر نیست.
-                </span>
-
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) =>
-                    setImage(e.target.files?.[0] || null)
-                  }
-                />
-              </label>
-            </div>
-          </section>
-
-          <div className="my-8 h-px bg-[#211b10]" />
-
-          {/* Mode */}
-          <section>
-            <h2 className="mb-5 text-xl font-black text-white">
-              نوع ثبت فروشنده
-            </h2>
-
-            <div className="grid gap-3 md:grid-cols-2">
-
-              <button
-                type="button"
-                onClick={() => setMode("website")}
-                className={`rounded-2xl border p-5 text-right transition ${
-                  mode === "website"
-                    ? "border-[#d8aa4d] bg-[#17130c]"
-                    : "border-[#2d2414] bg-[#0b0b0b]"
-                }`}
-              >
-                <div className="mb-3 flex items-center gap-3">
-                  <Globe
-                    size={22}
-                    className={
-                      mode === "website"
-                        ? "text-[#d8aa4d]"
-                        : "text-gray-500"
-                    }
-                  />
-
-                  <span className="font-bold text-white">
-                    اتصال به سایت
-                  </span>
-                </div>
-
-                <p className="text-xs leading-6 text-gray-500">
-                  قیمت محصول همراه با آدرس سایت فروشنده ثبت می‌شود.
-                </p>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setMode("direct")}
-                className={`rounded-2xl border p-5 text-right transition ${
-                  mode === "direct"
-                    ? "border-[#d8aa4d] bg-[#17130c]"
-                    : "border-[#2d2414] bg-[#0b0b0b]"
-                }`}
-              >
-                <div className="mb-3 flex items-center gap-3">
-                  <Store
-                    size={22}
-                    className={
-                      mode === "direct"
-                        ? "text-[#d8aa4d]"
-                        : "text-gray-500"
-                    }
-                  />
-
-                  <span className="font-bold text-white">
-                    ثبت محصول بدون سایت
-                  </span>
-                </div>
-
-                <p className="text-xs leading-6 text-gray-500">
-                  بدون نیاز به وارد کردن آدرس سایت فروشنده.
-                </p>
-              </button>
-
-            </div>
-          </section>
-
-          <div className="my-8 h-px bg-[#211b10]" />
-
-          {/* Seller */}
-          <section>
-            <h2 className="mb-5 text-xl font-black text-white">
-              اطلاعات فروشنده
-            </h2>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <Field
-                label="نام فروشگاه یا فروشنده"
-                value={sellerName}
-                onChange={setSellerName}
-                placeholder="مثلاً فروشگاه آلفا"
-              />
-
-              <Field
-                label="شماره تماس فروشنده"
-                value={sellerPhone}
-                onChange={setSellerPhone}
-                placeholder="اختیاری"
-                type="tel"
-              />
-            </div>
-
-            {mode === "website" && (
-              <div className="mt-4">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <Field
-                  label="آدرس سایت فروشنده"
-                  value={sellerWebsite}
-                  onChange={setSellerWebsite}
-                  placeholder="https://example.com"
-                  type="url"
+                  label="نام محصول"
+                  value={productName}
+                  onChange={setProductName}
+                  placeholder="مثلاً گوشی سامسونگ..."
                 />
+
+                <Field
+                  label="قیمت به تومان"
+                  value={price}
+                  onChange={setPrice}
+                  placeholder="مثلاً 25000000"
+                  inputMode="numeric"
+                />
+
+                <Field
+                  label="نام فروشنده / فروشگاه"
+                  value={seller}
+                  onChange={setSeller}
+                  placeholder="نام فروشگاه"
+                />
+
+                {mode === "website" && (
+                  <Field
+                    label="آدرس سایت"
+                    value={website}
+                    onChange={setWebsite}
+                    placeholder="https://example.com"
+                    inputMode="url"
+                    dir="ltr"
+                  />
+                )}
+              </div>
+            </div>
+
+            {error && (
+              <div className="rounded-2xl border border-red-900 bg-red-950/30 p-4 text-sm text-red-300">
+                {error}
               </div>
             )}
-          </section>
 
-          {/* Messages */}
-          {error && (
-            <div className="mt-6 rounded-2xl border border-red-900/50 bg-red-950/20 px-4 py-4 text-sm leading-7 text-red-300">
-              {error}
-            </div>
-          )}
+            {message && (
+              <div className="rounded-2xl border border-[#665122] bg-[#181307] p-4 text-sm leading-7 text-[#e5c46b]">
+                {message}
+              </div>
+            )}
 
-          {message && (
-            <div className="mt-6 flex items-center gap-3 rounded-2xl border border-[#80652f] bg-[#17130c] px-4 py-4 text-sm leading-7 text-[#d8aa4d]">
-              <CheckCircle2 size={20} />
-              {message}
-            </div>
-          )}
+            <button
+              type="submit"
+              className="w-full rounded-2xl bg-[#d8aa4d] py-4 font-bold text-black transition hover:bg-[#efc766] active:scale-[0.99]"
+            >
+              ثبت محصول
+            </button>
+          </form>
 
-          {/* Submit */}
-          <button
-            type="submit"
-            disabled={loading}
-            className="mt-8 flex w-full items-center justify-center rounded-2xl px-5 py-4 text-sm font-black text-black transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-            style={{ background: "#d8aa4d" }}
-          >
-            {loading ? "در حال ثبت..." : "ثبت محصول و قیمت"}
-          </button>
-
-          <p className="mt-4 text-center text-xs leading-6 text-gray-600">
-            ثبت محصول در حال حاضر رایگان است.
+          <p className="mt-5 text-center text-xs leading-6 text-gray-600">
+            سقف قیمت هر محصول: ۵۰۰ میلیون تومان
           </p>
-        </form>
+        </div>
+
+        <footer className="py-7 text-center text-xs text-gray-600">
+          سازنده این سایت: نیما حجتی
+          <br />
+          alphakade11@gmail.com
+        </footer>
       </div>
     </main>
   );
@@ -557,27 +363,33 @@ function Field({
   value,
   onChange,
   placeholder,
-  type = "text",
+  inputMode,
+  maxLength,
+  dir,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
-  type?: string;
+  inputMode?: "text" | "numeric" | "tel" | "url";
+  maxLength?: number;
+  dir?: "rtl" | "ltr";
 }) {
   return (
     <div>
-      <label className="mb-2 block text-sm font-bold text-gray-300">
+      <label className="mb-2 block text-sm text-gray-300">
         {label}
       </label>
 
       <input
-        type={type}
+        dir={dir}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full rounded-xl border border-[#3a2e18] bg-[#101010] px-4 py-3 text-right text-white outline-none placeholder:text-gray-600 focus:border-[#d8aa4d]"
+        inputMode={inputMode}
+        maxLength={maxLength}
+        className="w-full rounded-2xl border border-[#40331d] bg-black px-4 py-3.5 text-white outline-none transition placeholder:text-gray-700 focus:border-[#d8aa4d]"
       />
     </div>
   );
-   }
+        }
