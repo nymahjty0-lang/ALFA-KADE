@@ -70,7 +70,9 @@ export default function LoginPage() {
         "true"
       );
     } else {
-      localStorage.removeItem("alfa_kade_admin_verified");
+      localStorage.removeItem(
+        "alfa_kade_admin_verified"
+      );
     }
 
     setError("");
@@ -81,15 +83,15 @@ export default function LoginPage() {
   return (
     <main
       dir="rtl"
-      className="min-h-screen bg-[#070707] text-white flex items-center justify-center px-4 py-10"
+      className="flex min-h-screen items-center justify-center bg-[#070707] px-4 py-10 text-white"
     >
       <div className="w-full max-w-md">
-        <div className="rounded-3xl border border-[#8f6f2d] bg-[#0d0d0d] shadow-2xl overflow-hidden">
-          <div className="flex flex-col items-center px-6 pt-8 pb-6">
+        <div className="overflow-hidden rounded-3xl border border-[#8f6f2d] bg-[#0d0d0d] shadow-2xl">
+          <div className="flex flex-col items-center px-6 pb-6 pt-8">
             <img
               src="/ALFA-KADE/alfa-cade.png"
               alt="ALFA KADE"
-              className="w-28 h-28 rounded-2xl object-cover border border-[#b88a32] shadow-lg"
+              className="h-28 w-28 rounded-2xl border border-[#b88a32] object-cover shadow-lg"
             />
 
             <h1 className="mt-5 text-3xl font-bold text-[#d8aa4d]">
@@ -100,7 +102,7 @@ export default function LoginPage() {
               ALFA KADE
             </p>
 
-            <p className="mt-5 text-center text-gray-300 leading-7">
+            <p className="mt-5 text-center leading-7 text-gray-300">
               ورود به آلفا کده
               <br />
               مقایسه قیمت و خرید هوشمند
@@ -123,17 +125,20 @@ export default function LoginPage() {
 
                     <input
                       dir="ltr"
-                      inputMode="numeric"
+                      inputMode="tel"
+                      type="tel"
                       value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
+                      onChange={(event) =>
+                        setPhone(event.target.value)
+                      }
                       placeholder="09123456789"
-                      className="w-full rounded-2xl border border-[#4f4022] bg-black py-4 pr-12 pl-4 text-white outline-none transition focus:border-[#d8aa4d]"
+                      className="w-full rounded-2xl border border-[#40331d] bg-black py-4 pl-4 pr-12 text-white outline-none transition placeholder:text-gray-700 focus:border-[#d8aa4d]"
                     />
                   </div>
                 </div>
 
                 {error && (
-                  <div className="rounded-xl border border-red-900 bg-red-950/30 px-4 py-3 text-sm text-red-300">
+                  <div className="rounded-2xl border border-red-900 bg-red-950/30 px-4 py-3 text-sm text-red-300">
                     {error}
                   </div>
                 )}
@@ -141,19 +146,19 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={sendCode}
-                  className="w-full rounded-2xl bg-[#d8aa4d] py-4 font-bold text-black transition hover:bg-[#efc766] active:scale-[0.99]"
+                  className="w-full rounded-2xl bg-[#d8aa4d] py-4 font-bold text-black transition hover:bg-[#efc766]"
                 >
                   دریافت کد ورود
                 </button>
 
-                <div className="flex items-center gap-3 rounded-2xl border border-[#292929] bg-black/40 p-4">
+                <div className="flex items-start gap-3 rounded-2xl border border-[#292929] bg-black/40 p-4">
                   <ShieldCheck
                     size={23}
-                    className="shrink-0 text-[#d8aa4d]"
+                    className="mt-0.5 shrink-0 text-[#d8aa4d]"
                   />
 
                   <p className="text-xs leading-6 text-gray-400">
-                    ورود مدیر فقط برای شماره‌های مجاز آلفا کده فعال است.
+                    کد پیامکی فعلاً آزمایشی است.
                   </p>
                 </div>
               </div>
@@ -173,21 +178,24 @@ export default function LoginPage() {
                     <input
                       dir="ltr"
                       inputMode="numeric"
+                      type="text"
                       maxLength={4}
                       value={code}
-                      onChange={(e) =>
+                      onChange={(event) =>
                         setCode(
-                          normalizePhone(e.target.value).slice(0, 4)
+                          normalizePhone(
+                            event.target.value
+                          ).slice(0, 4)
                         )
                       }
                       placeholder="1234"
-                      className="w-full rounded-2xl border border-[#4f4022] bg-black py-4 pr-12 pl-4 text-center tracking-[0.5em] text-white outline-none transition focus:border-[#d8aa4d]"
+                      className="w-full rounded-2xl border border-[#40331d] bg-black py-4 pl-4 pr-12 text-center tracking-[0.5em] text-white outline-none transition placeholder:text-gray-700 focus:border-[#d8aa4d]"
                     />
                   </div>
                 </div>
 
                 {error && (
-                  <div className="rounded-xl border border-red-900 bg-red-950/30 px-4 py-3 text-sm text-red-300">
+                  <div className="rounded-2xl border border-red-900 bg-red-950/30 px-4 py-3 text-sm text-red-300">
                     {error}
                   </div>
                 )}
@@ -195,7 +203,7 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={verifyCode}
-                  className="w-full rounded-2xl bg-[#d8aa4d] py-4 font-bold text-black transition hover:bg-[#efc766] active:scale-[0.99]"
+                  className="w-full rounded-2xl bg-[#d8aa4d] py-4 font-bold text-black transition hover:bg-[#efc766]"
                 >
                   ورود به آلفا کده
                 </button>
@@ -207,15 +215,16 @@ export default function LoginPage() {
                     setCode("");
                     setError("");
                   }}
-                  className="w-full rounded-2xl border border-[#4f4022] py-3 text-sm text-gray-300 transition hover:border-[#d8aa4d] hover:text-white"
+                  className="w-full rounded-2xl border border-[#40331d] py-3 text-sm text-gray-300 transition hover:border-[#d8aa4d] hover:text-white"
                 >
                   تغییر شماره موبایل
                 </button>
 
                 <div className="rounded-2xl border border-[#292929] bg-black/40 p-4 text-center">
                   <p className="text-xs text-gray-500">
-                    کد آزمایشی ورود
+                    کد آزمایشی
                   </p>
+
                   <p
                     dir="ltr"
                     className="mt-1 text-lg font-bold tracking-widest text-[#d8aa4d]"
@@ -240,4 +249,4 @@ export default function LoginPage() {
       </div>
     </main>
   );
-  }
+      }
