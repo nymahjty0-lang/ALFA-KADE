@@ -61,13 +61,12 @@ function formatPrice(price: number) {
 function readCart(): CartItem[] {
   try {
     const raw = localStorage.getItem(CART_KEY);
+
     if (!raw) return [];
 
     const parsed = JSON.parse(raw);
 
-    if (!Array.isArray(parsed)) return [];
-
-    return parsed;
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
   }
@@ -75,7 +74,10 @@ function readCart(): CartItem[] {
 
 function saveCart(cart: CartItem[]) {
   localStorage.setItem(CART_KEY, JSON.stringify(cart));
-  window.dispatchEvent(new Event("alfa-kade-cart-updated"));
+
+  window.dispatchEvent(
+    new Event("alfa-kade-cart-updated")
+  );
 }
 
 export default function ProductsPage() {
@@ -84,11 +86,11 @@ export default function ProductsPage() {
     useState<Product | null>(null);
   const [offers, setOffers] = useState<Offer[]>([]);
   const [loading, setLoading] = useState(true);
-  const [offersLoading, setOffersLoading] = useState(false);
+  const [offersLoading, setOffersLoading] =
+    useState(false);
   const [search, setSearch] = useState("");
-  const [addedOfferId, setAddedOfferId] = useState<string | null>(
-    null
-  );
+  const [addedOfferId, setAddedOfferId] =
+    useState<string | null>(null);
 
   useEffect(() => {
     async function loadProducts() {
@@ -97,29 +99,40 @@ export default function ProductsPage() {
         return;
       }
 
-      const params = new URLSearchParams(window.location.search);
+      const params = new URLSearchParams(
+        window.location.search
+      );
+
       const slug = params.get("slug");
 
       const { data, error } = await supabase
         .from("products")
-        .select("id, name, slug, image_url, category")
-        .order("created_at", { ascending: false });
+        .select(
+          "id, name, slug, image_url, category"
+        )
+        .order("created_at", {
+          ascending: false,
+        });
 
       if (!error && data) {
         setProducts(data as Product[]);
       }
 
       if (slug) {
-        const { data: productData } = await supabase
+        const { data: product } = await supabase
           .from("products")
-          .select("id, name, slug, image_url, category")
+          .select(
+            "id, name, slug, image_url, category"
+          )
           .eq("slug", slug)
           .maybeSingle();
 
-        if (productData) {
-          const product = productData as Product;
-          setSelectedProduct(product);
-          await loadOffers(product.id);
+        if (product) {
+          const selected = product as Product;
+
+          setSelectedProduct(selected);
+
+          await loadOffers(selected.id);
         }
       }
 
@@ -137,7 +150,9 @@ export default function ProductsPage() {
           "id, price, website_url, seller_name, seller_phone"
         )
         .eq("product_id", productId)
-        .order("price", { ascending: true });
+        .order("price", {
+          ascending: true,
+        });
 
       if (!error && data) {
         setOffers(data as Offer[]);
@@ -148,31 +163,23 @@ export default function ProductsPage() {
       setOffersLoading(false);
     }
 
-    loadProducts();
-
-    const handlePopState = () => {
-      window.location.reload();
-    };
-
-    window.addEventListener("popstate", handlePopState);
-
-    return () => {
-      window.removeEventListener("popstate", handlePopState);
-    };
+    void loadProducts();
   }, []);
 
   async function openProduct(product: Product) {
     setSelectedProduct(product);
+    setOffers([]);
 
     window.history.pushState(
       {},
       "",
-      `/ALFA-KADE/products?slug=${encodeURIComponent(product.slug)}`
+      `/ALFA-KADE/products?slug=${encodeURIComponent(
+        product.slug
+      )}`
     );
 
     if (!supabase) return;
 
-    setOffers([]);
     setOffersLoading(true);
 
     const { data, error } = await supabase
@@ -181,7 +188,9 @@ export default function ProductsPage() {
         "id, price, website_url, seller_name, seller_phone"
       )
       .eq("product_id", product.id)
-      .order("price", { ascending: true });
+      .order("price", {
+        ascending: true,
+      });
 
     if (!error && data) {
       setOffers(data as Offer[]);
@@ -206,14 +215,14 @@ export default function ProductsPage() {
 
     const cart = readCart();
 
-    const existingIndex = cart.findIndex(
+    const index = cart.findIndex(
       (item) => item.id === offer.id
     );
 
-    if (existingIndex >= 0) {
-      cart[existingIndex] = {
-        ...cart[existingIndex],
-        quantity: cart[existingIndex].quantity + 1,
+    if (index >= 0) {
+      cart[index] = {
+        ...cart[index],
+        quantity: cart[index].quantity + 1,
       };
     } else {
       cart.push({
@@ -235,78 +244,78 @@ export default function ProductsPage() {
     }, 1500);
   }
 
-  const filteredProducts = products.filter((product) =>
-    product.name
-      .toLowerCase()
-      .includes(search.toLowerCase().trim())
+  const filteredProducts = products.filter(
+    (product) =>
+      product.name
+        .toLowerCase()
+        .includes(search.trim().toLowerCase())
   );
 
   if (selectedProduct) {
     return (
       <main
         dir="rtl"
-        className="min-h-screen bg-[#070707] px-4 py-8 text-white md:py-12"
+        className="min-h-screen bg-[#070707] px-4 py-8 text-white"
       >
         <div className="mx-auto max-w-6xl">
           <button
             type="button"
             onClick={backToProducts}
-            className="mb-6 inline-flex items-center gap-2 text-sm text-gray-500 transition hover:text-[#d8aa4d]"
+            className="mb-6 inline-flex items-center gap-2 text-sm text-gray-500 hover:text-[#d8aa4d]"
           >
             <ArrowRight size={18} />
-            بازگشت به همه محصولات
+            بازگشت به محصولات
           </button>
 
-          <section className="overflow-hidden rounded-3xl border border-[#2d2414] bg-[#0c0c0c]">
-            <div className="grid gap-8 p-6 md:grid-cols-[280px_1fr] md:p-10">
-              <div className="flex min-h-[260px] items-center justify-center rounded-2xl border border-[#2d2414] bg-[#090909] p-5">
+          <section className="rounded-3xl border border-[#2d2414] bg-[#0c0c0c] p-6">
+            <div className="grid gap-8 md:grid-cols-[280px_1fr]">
+              <div className="flex min-h-[260px] items-center justify-center rounded-2xl bg-[#090909] p-5">
                 {selectedProduct.image_url ? (
                   <img
                     src={selectedProduct.image_url}
                     alt={selectedProduct.name}
-                    className="max-h-64 max-w-full rounded-xl object-contain"
+                    className="max-h-64 max-w-full object-contain"
                   />
                 ) : (
-                  <div className="text-center text-gray-600">
-                    تصویر محصول موجود نیست
-                  </div>
+                  <Store
+                    size={50}
+                    className="text-[#80652f]"
+                  />
                 )}
               </div>
 
               <div className="flex flex-col justify-center">
-                <div className="mb-3 text-sm font-bold text-[#d8aa4d]">
+                <span className="text-sm font-bold text-[#d8aa4d]">
                   ALFA KADE
-                </div>
+                </span>
 
-                <h1 className="text-3xl font-black leading-10 md:text-4xl">
+                <h1 className="mt-3 text-3xl font-black">
                   {selectedProduct.name}
                 </h1>
 
                 {selectedProduct.category && (
-                  <div className="mt-4 text-sm text-gray-500">
-                    دسته‌بندی: {selectedProduct.category}
-                  </div>
+                  <p className="mt-3 text-sm text-gray-500">
+                    دسته‌بندی:{" "}
+                    {selectedProduct.category}
+                  </p>
                 )}
 
-                <p className="mt-4 text-sm leading-7 text-gray-500">
-                  قیمت این محصول را از فروشندگان مختلف مقایسه کنید
-                  و بهترین پیشنهاد را انتخاب کنید.
-                </p>
-
                 <div className="mt-6 flex flex-wrap gap-3">
-                  <div className="rounded-xl border border-[#2d2414] bg-[#11100d] px-4 py-3 text-sm text-gray-300">
-                    تعداد فروشندگان:
+                  <div className="rounded-xl border border-[#2d2414] px-4 py-3 text-sm text-gray-400">
+                    فروشندگان:
                     <span className="mr-2 font-bold text-[#d8aa4d]">
                       {offers.length}
                     </span>
                   </div>
 
                   {offers.length > 0 && (
-                    <div className="rounded-xl border border-[#2d2414] bg-[#11100d] px-4 py-3 text-sm text-gray-300">
-                      شروع قیمت از:
+                    <div className="rounded-xl border border-[#2d2414] px-4 py-3 text-sm text-gray-400">
+                      ارزان‌ترین:
                       <span className="mr-2 font-bold text-[#d8aa4d]">
-                        {formatPrice(Number(offers[0].price))}
-                        {" "}تومان
+                        {formatPrice(
+                          Number(offers[0].price)
+                        )}{" "}
+                        تومان
                       </span>
                     </div>
                   )}
@@ -316,14 +325,14 @@ export default function ProductsPage() {
           </section>
 
           <section className="mt-8">
-            <div className="mb-5 flex items-center justify-between">
+            <div className="mb-5 flex items-center justify-between gap-3">
               <h2 className="text-2xl font-black">
                 مقایسه قیمت فروشندگان
               </h2>
 
               <Link
                 href="/cart"
-                className="flex items-center gap-2 rounded-xl border border-[#3a2e18] px-4 py-2 text-sm text-[#d8aa4d] hover:bg-[#181307]"
+                className="flex items-center gap-2 rounded-xl border border-[#3a2e18] px-4 py-2 text-sm text-[#d8aa4d]"
               >
                 <ShoppingCart size={18} />
                 سبد خرید
@@ -331,28 +340,28 @@ export default function ProductsPage() {
             </div>
 
             {offersLoading ? (
-              <div className="flex justify-center py-16 text-[#d8aa4d]">
+              <div className="py-16 text-center text-[#d8aa4d]">
                 <Loader2
-                  className="animate-spin"
-                  size={28}
+                  className="mx-auto animate-spin"
+                  size={30}
                 />
               </div>
             ) : offers.length === 0 ? (
-              <div className="rounded-3xl border border-dashed border-[#3a2e18] bg-[#0c0c0c] px-5 py-14 text-center">
+              <div className="rounded-3xl border border-dashed border-[#3a2e18] bg-[#0c0c0c] p-14 text-center">
                 <Store
                   size={40}
                   className="mx-auto mb-4 text-[#d8aa4d]"
                 />
 
-                <h3 className="text-lg font-bold text-gray-200">
+                <h3 className="font-bold">
                   هنوز فروشنده‌ای ثبت نشده است
                 </h3>
 
                 <Link
                   href="/products/register"
-                  className="mt-6 inline-block rounded-xl bg-[#d8aa4d] px-6 py-3 text-sm font-bold text-black"
+                  className="mt-5 inline-block rounded-xl bg-[#d8aa4d] px-6 py-3 font-bold text-black"
                 >
-                  ثبت قیمت محصول
+                  ثبت قیمت
                 </Link>
               </div>
             ) : (
@@ -369,25 +378,25 @@ export default function ProductsPage() {
                         </div>
 
                         <div>
-                          <div className="font-bold text-white">
+                          <p className="font-bold">
                             {offer.seller_name}
-                          </div>
+                          </p>
 
-                          <div className="mt-1 text-xs text-gray-500">
+                          <p className="mt-1 text-xs text-gray-500">
                             {index === 0
                               ? "ارزان‌ترین پیشنهاد"
-                              : `پیشنهاد شماره ${index + 1}`}
-                          </div>
+                              : `پیشنهاد ${index + 1}`}
+                          </p>
                         </div>
                       </div>
 
-                      <div>
-                        <div className="text-2xl font-black text-[#d8aa4d]">
-                          {formatPrice(Number(offer.price))}
-                          <span className="mr-1 text-xs font-normal text-gray-500">
-                            تومان
-                          </span>
-                        </div>
+                      <div className="text-2xl font-black text-[#d8aa4d]">
+                        {formatPrice(
+                          Number(offer.price)
+                        )}
+                        <span className="mr-1 text-xs font-normal text-gray-500">
+                          تومان
+                        </span>
                       </div>
 
                       <div className="flex flex-wrap gap-2">
@@ -396,7 +405,7 @@ export default function ProductsPage() {
                             href={offer.website_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="rounded-xl border border-[#3a2e18] px-4 py-2.5 text-sm text-gray-300 hover:border-[#d8aa4d] hover:text-[#d8aa4d]"
+                            className="rounded-xl border border-[#3a2e18] px-4 py-2.5 text-sm text-gray-300 hover:border-[#d8aa4d]"
                           >
                             مشاهده سایت
                           </a>
@@ -404,8 +413,10 @@ export default function ProductsPage() {
 
                         <button
                           type="button"
-                          onClick={() => addToCart(offer)}
-                          className="flex items-center gap-2 rounded-xl bg-[#d8aa4d] px-4 py-2.5 text-sm font-bold text-black transition hover:bg-[#efc766]"
+                          onClick={() =>
+                            addToCart(offer)
+                          }
+                          className="flex items-center gap-2 rounded-xl bg-[#d8aa4d] px-4 py-2.5 text-sm font-bold text-black hover:bg-[#efc766]"
                         >
                           {addedOfferId === offer.id ? (
                             <>
@@ -434,25 +445,26 @@ export default function ProductsPage() {
   return (
     <main
       dir="rtl"
-      className="min-h-screen bg-[#070707] px-4 py-8 text-white md:py-12"
+      className="min-h-screen bg-[#070707] px-4 py-8 text-white"
     >
       <div className="mx-auto max-w-6xl">
-        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-black md:text-4xl">
+            <h1 className="text-3xl font-black">
               همه محصولات
             </h1>
 
-            <p className="mt-3 text-gray-500">
-              دسته‌بندی و محصولات موردنظر خود را پیدا کنید.
+            <p className="mt-2 text-sm text-gray-500">
+              محصولات را پیدا کنید و قیمت فروشندگان را مقایسه
+              کنید.
             </p>
           </div>
 
           <Link
             href="/cart"
-            className="inline-flex w-fit items-center gap-2 rounded-xl border border-[#3a2e18] px-4 py-3 text-sm text-[#d8aa4d] hover:bg-[#181307]"
+            className="flex items-center gap-2 rounded-xl border border-[#3a2e18] px-4 py-3 text-sm text-[#d8aa4d]"
           >
-            <ShoppingCart size={19} />
+            <ShoppingCart size={18} />
             سبد خرید
           </Link>
         </div>
@@ -465,7 +477,9 @@ export default function ProductsPage() {
 
           <input
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(event) =>
+              setSearch(event.target.value)
+            }
             placeholder="جستجوی محصول..."
             className="w-full bg-transparent text-white outline-none placeholder:text-gray-600"
           />
@@ -475,8 +489,10 @@ export default function ProductsPage() {
           {categories.map((category) => (
             <Link
               key={category}
-              href={`/search?q=${encodeURIComponent(category)}`}
-              className="rounded-2xl border border-[#2d2414] bg-[#0c0c0c] p-4 text-center text-sm font-bold text-gray-300 transition hover:border-[#d8aa4d] hover:text-[#d8aa4d]"
+              href={`/search?q=${encodeURIComponent(
+                category
+              )}`}
+              className="rounded-2xl border border-[#2d2414] bg-[#0c0c0c] p-4 text-center text-sm font-bold text-gray-300 hover:border-[#d8aa4d] hover:text-[#d8aa4d]"
             >
               {category}
             </Link>
@@ -484,30 +500,26 @@ export default function ProductsPage() {
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-20 text-[#d8aa4d]">
+          <div className="py-20 text-center text-[#d8aa4d]">
             <Loader2
-              className="animate-spin"
+              className="mx-auto animate-spin"
               size={30}
             />
           </div>
         ) : filteredProducts.length === 0 ? (
-          <div className="rounded-3xl border border-dashed border-[#3a2e18] bg-[#0c0c0c] px-5 py-16 text-center">
+          <div className="rounded-3xl border border-dashed border-[#3a2e18] bg-[#0c0c0c] p-16 text-center">
             <Search
               size={40}
               className="mx-auto mb-4 text-[#d8aa4d]"
             />
 
-            <h2 className="text-xl font-bold">
-              هنوز محصولی پیدا نشد
+            <h2 className="font-bold">
+              محصولی پیدا نشد
             </h2>
-
-            <p className="mt-2 text-sm text-gray-600">
-              می‌توانید اولین محصول را در آلفا کده ثبت کنید.
-            </p>
 
             <Link
               href="/products/register"
-              className="mt-6 inline-block rounded-xl bg-[#d8aa4d] px-6 py-3 text-sm font-bold text-black"
+              className="mt-6 inline-block rounded-xl bg-[#d8aa4d] px-6 py-3 font-bold text-black"
             >
               ثبت محصول
             </Link>
@@ -518,8 +530,8 @@ export default function ProductsPage() {
               <button
                 key={product.id}
                 type="button"
-                onClick={() => openProduct(product)}
-                className="overflow-hidden rounded-2xl border border-[#2d2414] bg-[#0c0c0c] text-right transition hover:border-[#d8aa4d]"
+                onClick={() => void openProduct(product)}
+                className="overflow-hidden rounded-2xl border border-[#2d2414] bg-[#0c0c0c] text-right hover:border-[#d8aa4d]"
               >
                 <div className="flex h-48 items-center justify-center bg-[#090909] p-4">
                   {product.image_url ? (
@@ -530,8 +542,8 @@ export default function ProductsPage() {
                     />
                   ) : (
                     <Store
-                      className="text-[#80652f]"
                       size={40}
+                      className="text-[#80652f]"
                     />
                   )}
                 </div>
@@ -541,9 +553,15 @@ export default function ProductsPage() {
                     {product.name}
                   </h3>
 
-                  <div className="mt-3 text-xs text-gray-500">
+                  {product.category && (
+                    <p className="mt-2 text-xs text-gray-600">
+                      {product.category}
+                    </p>
+                  )}
+
+                  <p className="mt-3 text-xs text-gray-500">
                     مشاهده قیمت فروشندگان
-                  </div>
+                  </p>
                 </div>
               </button>
             ))}
@@ -552,4 +570,4 @@ export default function ProductsPage() {
       </div>
     </main>
   );
-  }
+          }
