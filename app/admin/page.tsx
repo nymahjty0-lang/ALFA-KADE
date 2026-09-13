@@ -1,14 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useState } from "react";
-import {
-  ArrowRight,
-  ShieldCheck,
-  LockKeyhole,
-  Settings,
-  Package,
-} from "lucide-react";
+import { useState } from "react";
+import { LockKeyhole, Smartphone, ShieldCheck } from "lucide-react";
 
 const BASE_PATH = "/ALFA-KADE";
 
@@ -18,7 +11,7 @@ const ADMIN_NUMBERS = [
   "09010391546",
 ];
 
-const ADMIN_PASSWORD = "909174";
+const TEST_CODE = "1234";
 
 function normalizePhone(value: string) {
   return value
@@ -31,326 +24,216 @@ function normalizePhone(value: string) {
     .replace(/\D/g, "");
 }
 
-export default function AdminPage() {
-  const [loading, setLoading] = useState(true);
-  const [authorized, setAuthorized] = useState(false);
-  const [password, setPassword] = useState("");
+export default function LoginPage() {
+  const [phone, setPhone] = useState("");
+  const [code, setCode] = useState("");
+  const [step, setStep] = useState<"phone" | "code">("phone");
   const [error, setError] = useState("");
-  const [loginSuccess, setLoginSuccess] = useState(false);
 
-  const [registrationFee, setRegistrationFee] = useState("0");
-  const [renewalFee, setRenewalFee] = useState("200000");
-  const [saved, setSaved] = useState(false);
+  function sendCode() {
+    const normalizedPhone = normalizePhone(phone);
 
-  useEffect(() => {
-    const loggedIn =
-      localStorage.getItem("alfa_kade_logged_in") === "true";
-
-    const adminVerified =
-      localStorage.getItem("alfa_kade_admin_verified") === "true";
-
-    const phone = normalizePhone(
-      localStorage.getItem("alfa_kade_phone") || ""
-    );
-
-    const allowed =
-      loggedIn &&
-      adminVerified &&
-      ADMIN_NUMBERS.includes(phone);
-
-    setAuthorized(allowed);
-    setLoading(false);
-
-    if (allowed) {
-      const savedRegistrationFee =
-        localStorage.getItem("alfa_kade_registration_fee");
-
-      const savedRenewalFee =
-        localStorage.getItem("alfa_kade_renewal_fee");
-
-      if (savedRegistrationFee !== null) {
-        setRegistrationFee(savedRegistrationFee);
-      }
-
-      if (savedRenewalFee !== null) {
-        setRenewalFee(savedRenewalFee);
-      }
-    }
-  }, []);
-
-  function verifyPassword() {
-    if (password !== ADMIN_PASSWORD) {
-      setError("رمز مدیریت اشتباه است.");
-      setLoginSuccess(false);
+    if (!/^09\d{9}$/.test(normalizedPhone)) {
+      setError("لطفاً یک شماره موبایل معتبر وارد کنید.");
       return;
     }
 
+    setPhone(normalizedPhone);
+    setCode("");
     setError("");
-    setLoginSuccess(true);
-    localStorage.setItem(
-      "alfa_kade_admin_password_verified",
-      "true"
-    );
+    setStep("code");
   }
 
-  function saveSettings() {
-    localStorage.setItem(
-      "alfa_kade_registration_fee",
-      registrationFee
-    );
+  function verifyCode() {
+    const normalizedPhone = normalizePhone(phone);
 
-    localStorage.setItem(
-      "alfa_kade_renewal_fee",
-      renewalFee
-    );
+    if (code !== TEST_CODE) {
+      setError("کد تأیید اشتباه است. کد آزمایشی: 1234");
+      return;
+    }
 
-    setSaved(true);
+    const isAdmin = ADMIN_NUMBERS.includes(normalizedPhone);
 
-    window.setTimeout(() => {
-      setSaved(false);
-    }, 2500);
-  }
+    localStorage.setItem("alfa_kade_logged_in", "true");
+    localStorage.setItem("alfa_kade_phone", normalizedPhone);
 
-  if (loading) {
-    return (
-      <main
-        dir="rtl"
-        className="min-h-screen bg-[#070707] text-white flex items-center justify-center"
-      >
-        <div className="text-[#d8aa4d]">
-          در حال بررسی دسترسی...
-        </div>
-      </main>
-    );
-  }
+    if (isAdmin) {
+      localStorage.setItem("alfa_kade_admin_verified", "true");
+    } else {
+      localStorage.removeItem("alfa_kade_admin_verified");
+    }
 
-  if (!authorized) {
-    return (
-      <main
-        dir="rtl"
-        className="min-h-screen bg-[#070707] text-white flex items-center justify-center px-4"
-      >
-        <div className="w-full max-w-md rounded-3xl border border-red-900 bg-[#0d0d0d] p-7 text-center">
-          <ShieldCheck
-            size={48}
-            className="mx-auto mb-5 text-red-400"
-          />
-
-          <h1 className="text-2xl font-bold">
-            دسترسی غیرمجاز
-          </h1>
-
-          <p className="mt-3 text-sm leading-7 text-gray-400">
-            این بخش فقط برای مدیران مجاز آلفا کده قابل دسترسی است.
-          </p>
-
-          <Link
-            href={`${BASE_PATH}/login`}
-            className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-[#d8aa4d] px-6 py-3 font-bold text-black"
-          >
-            ورود
-            <ArrowRight size={18} />
-          </Link>
-        </div>
-      </main>
-    );
-  }
-
-  if (!loginSuccess) {
-    return (
-      <main
-        dir="rtl"
-        className="min-h-screen bg-[#070707] text-white flex items-center justify-center px-4"
-      >
-        <div className="w-full max-w-md rounded-3xl border border-[#5b4824] bg-[#0d0d0d] p-7">
-          <div className="mb-7 text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#181307] text-[#d8aa4d]">
-              <LockKeyhole size={30} />
-            </div>
-
-            <h1 className="text-2xl font-bold text-[#d8aa4d]">
-              مدیریت آلفا کده
-            </h1>
-
-            <p className="mt-2 text-sm text-gray-500">
-              رمز مدیریت را وارد کنید.
-            </p>
-          </div>
-
-          <input
-            dir="ltr"
-            type="password"
-            inputMode="numeric"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="رمز مدیریت"
-            className="w-full rounded-2xl border border-[#40331d] bg-black px-4 py-4 text-center tracking-[0.3em] text-white outline-none focus:border-[#d8aa4d]"
-          />
-
-          {error && (
-            <div className="mt-4 rounded-2xl border border-red-900 bg-red-950/30 p-4 text-sm text-red-300">
-              {error}
-            </div>
-          )}
-
-          <button
-            type="button"
-            onClick={verifyPassword}
-            className="mt-5 w-full rounded-2xl bg-[#d8aa4d] py-4 font-bold text-black transition hover:bg-[#efc766]"
-          >
-            ورود به مدیریت
-          </button>
-
-          <Link
-            href={`${BASE_PATH}/products`}
-            className="mt-4 flex items-center justify-center gap-2 rounded-2xl border border-[#3f331e] py-3 text-sm text-gray-400 hover:text-white"
-          >
-            بازگشت
-            <ArrowRight size={17} />
-          </Link>
-        </div>
-      </main>
-    );
+    setError("");
+    window.location.href = `${BASE_PATH}/products`;
   }
 
   return (
     <main
       dir="rtl"
-      className="min-h-screen bg-[#070707] text-white px-4 py-8"
+      className="min-h-screen bg-[#070707] px-4 py-8 text-white"
     >
-      <div className="mx-auto max-w-4xl">
-        <div className="mb-7 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="rounded-2xl bg-[#181307] p-3 text-[#d8aa4d]">
-              <Settings size={27} />
-            </div>
+      <div className="mx-auto flex min-h-[90vh] max-w-md items-center justify-center">
+        <div className="w-full overflow-hidden rounded-3xl border border-[#5b4824] bg-[#0d0d0d] shadow-2xl">
+          <div className="flex flex-col items-center px-6 pb-6 pt-8">
+            <img
+              src={`${BASE_PATH}/alfa-cade.png`}
+              alt="ALFA KADE"
+              className="h-28 w-28 rounded-2xl border border-[#b88a32] object-cover"
+            />
 
-            <div>
-              <h1 className="text-2xl font-bold text-[#d8aa4d]">
-                پنل مدیریت
-              </h1>
-              <p className="text-sm text-gray-500">
-                ALFA KADE
-              </p>
-            </div>
+            <h1 className="mt-5 text-3xl font-bold text-[#d8aa4d]">
+              آلفا کده
+            </h1>
+
+            <p className="mt-2 text-sm text-gray-500">
+              ALFA KADE
+            </p>
+
+            <p className="mt-5 text-center leading-7 text-gray-300">
+              ورود به آلفا کده
+              <br />
+              مقایسه قیمت و خرید هوشمند
+            </p>
           </div>
 
-          <Link
-            href={`${BASE_PATH}/products`}
-            className="inline-flex items-center gap-2 rounded-xl border border-[#40331d] px-4 py-2 text-sm text-gray-300 hover:border-[#d8aa4d]"
-          >
-            محصولات
-            <Package size={17} />
-          </Link>
+          <div className="px-6 pb-7">
+            {step === "phone" ? (
+              <div className="space-y-5">
+                <div>
+                  <label className="mb-2 block text-sm text-gray-300">
+                    شماره موبایل
+                  </label>
+
+                  <div className="relative">
+                    <Smartphone
+                      size={20}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-[#d8aa4d]"
+                    />
+
+                    <input
+                      dir="ltr"
+                      inputMode="tel"
+                      type="tel"
+                      value={phone}
+                      onChange={(event) =>
+                        setPhone(event.target.value)
+                      }
+                      placeholder="09123456789"
+                      className="w-full rounded-2xl border border-[#40331d] bg-black py-4 pl-4 pr-12 text-white outline-none transition placeholder:text-gray-700 focus:border-[#d8aa4d]"
+                    />
+                  </div>
+                </div>
+
+                {error && (
+                  <div className="rounded-2xl border border-red-900 bg-red-950/30 px-4 py-3 text-sm text-red-300">
+                    {error}
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={sendCode}
+                  className="w-full rounded-2xl bg-[#d8aa4d] py-4 font-bold text-black transition hover:bg-[#efc766] active:scale-[0.99]"
+                >
+                  دریافت کد ورود
+                </button>
+
+                <div className="flex items-start gap-3 rounded-2xl border border-[#292929] bg-black/40 p-4">
+                  <ShieldCheck
+                    size={23}
+                    className="mt-0.5 shrink-0 text-[#d8aa4d]"
+                  />
+
+                  <p className="text-xs leading-6 text-gray-400">
+                    ورود مدیر فقط برای شماره‌های مجاز آلفا کده فعال است.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-5">
+                <div>
+                  <label className="mb-2 block text-sm text-gray-300">
+                    کد تأیید
+                  </label>
+
+                  <div className="relative">
+                    <LockKeyhole
+                      size={20}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-[#d8aa4d]"
+                    />
+
+                    <input
+                      dir="ltr"
+                      inputMode="numeric"
+                      type="text"
+                      maxLength={4}
+                      value={code}
+                      onChange={(event) =>
+                        setCode(
+                          normalizePhone(
+                            event.target.value
+                          ).slice(0, 4)
+                        )
+                      }
+                      placeholder="1234"
+                      className="w-full rounded-2xl border border-[#40331d] bg-black py-4 pl-4 pr-12 text-center tracking-[0.5em] text-white outline-none transition placeholder:text-gray-700 focus:border-[#d8aa4d]"
+                    />
+                  </div>
+                </div>
+
+                {error && (
+                  <div className="rounded-2xl border border-red-900 bg-red-950/30 px-4 py-3 text-sm text-red-300">
+                    {error}
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={verifyCode}
+                  className="w-full rounded-2xl bg-[#d8aa4d] py-4 font-bold text-black transition hover:bg-[#efc766] active:scale-[0.99]"
+                >
+                  ورود به آلفا کده
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStep("phone");
+                    setCode("");
+                    setError("");
+                  }}
+                  className="w-full rounded-2xl border border-[#40331d] py-3 text-sm text-gray-300 transition hover:border-[#d8aa4d] hover:text-white"
+                >
+                  تغییر شماره موبایل
+                </button>
+
+                <div className="rounded-2xl border border-[#292929] bg-black/40 p-4 text-center">
+                  <p className="text-xs text-gray-500">
+                    کد آزمایشی ورود
+                  </p>
+
+                  <p
+                    dir="ltr"
+                    className="mt-1 text-lg font-bold tracking-widest text-[#d8aa4d]"
+                  >
+                    1234
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="border-t border-[#242424] px-6 py-5 text-center">
+            <p className="text-xs text-gray-500">
+              سازنده: نیماحجتی
+            </p>
+
+            <p className="mt-2 text-xs text-gray-600">
+              © ALFA KADE
+            </p>
+          </div>
         </div>
-
-        <section className="rounded-3xl border border-[#40331d] bg-[#0d0d0d] p-6">
-          <h2 className="mb-6 text-xl font-bold">
-            تنظیمات هزینه‌ها
-          </h2>
-
-          <div className="grid gap-5 sm:grid-cols-2">
-            <div>
-              <label className="mb-2 block text-sm text-gray-300">
-                هزینه ثبت محصول
-              </label>
-
-              <input
-                dir="ltr"
-                inputMode="numeric"
-                value={registrationFee}
-                onChange={(e) =>
-                  setRegistrationFee(
-                    normalizePhone(e.target.value)
-                  )
-                }
-                className="w-full rounded-2xl border border-[#40331d] bg-black px-4 py-4 text-white outline-none focus:border-[#d8aa4d]"
-              />
-
-              <p className="mt-2 text-xs text-gray-600">
-                مبلغ به تومان
-              </p>
-            </div>
-
-            <div>
-              <label className="mb-2 block text-sm text-gray-300">
-                هزینه تمدید ۶ ماهه
-              </label>
-
-              <input
-                dir="ltr"
-                inputMode="numeric"
-                value={renewalFee}
-                onChange={(e) =>
-                  setRenewalFee(
-                    normalizePhone(e.target.value)
-                  )
-                }
-                className="w-full rounded-2xl border border-[#40331d] bg-black px-4 py-4 text-white outline-none focus:border-[#d8aa4d]"
-              />
-
-              <p className="mt-2 text-xs text-gray-600">
-                مبلغ به تومان
-              </p>
-            </div>
-          </div>
-
-          {saved && (
-            <div className="mt-5 rounded-2xl border border-[#665122] bg-[#181307] p-4 text-sm text-[#e5c46b]">
-              تنظیمات با موفقیت ذخیره شد.
-            </div>
-          )}
-
-          <button
-            type="button"
-            onClick={saveSettings}
-            className="mt-6 w-full rounded-2xl bg-[#d8aa4d] py-4 font-bold text-black hover:bg-[#efc766]"
-          >
-            ذخیره تنظیمات
-          </button>
-        </section>
-
-        <section className="mt-6 rounded-3xl border border-[#30291c] bg-[#0d0d0d] p-6">
-          <h2 className="text-lg font-bold text-[#d8aa4d]">
-            وضعیت مدیریت
-          </h2>
-
-          <div className="mt-4 grid gap-3 text-sm text-gray-400 sm:grid-cols-3">
-            <div className="rounded-2xl border border-[#242424] p-4">
-              <span className="block text-gray-600">
-                وضعیت
-              </span>
-              <span className="mt-1 block text-green-400">
-                فعال
-              </span>
-            </div>
-
-            <div className="rounded-2xl border border-[#242424] p-4">
-              <span className="block text-gray-600">
-                ثبت محصول
-              </span>
-              <span className="mt-1 block">
-                قابل مدیریت
-              </span>
-            </div>
-
-            <div className="rounded-2xl border border-[#242424] p-4">
-              <span className="block text-gray-600">
-                تمدید
-              </span>
-              <span className="mt-1 block">
-                ۶ ماهه
-              </span>
-            </div>
-          </div>
-        </section>
-
-        <footer className="py-8 text-center text-xs text-gray-600">
-          سازنده این سایت: نیما حجتی
-          <br />
-          alphakade11@gmail.com
-        </footer>
       </div>
     </main>
   );
-        }
+      }
