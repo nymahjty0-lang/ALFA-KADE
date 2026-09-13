@@ -2,7 +2,14 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Search, Store, Loader2, ArrowRight } from "lucide-react";
+import {
+  Search,
+  Store,
+  Loader2,
+  ArrowRight,
+  ShoppingCart,
+  Check,
+} from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 type Product = {
@@ -24,6 +31,15 @@ type Offer = {
   } | null;
 };
 
+type CartItem = {
+  id: string;
+  name: string;
+  price: number;
+  image?: string;
+  seller?: string;
+  quantity: number;
+};
+
 const categories = [
   "گوشی موبایل",
   "کامپیوتر",
@@ -43,16 +59,61 @@ function formatPrice(price: number) {
   return new Intl.NumberFormat("fa-IR").format(price);
 }
 
+function loadCart(): CartItem[] {
+  try {
+    const raw = localStorage.getItem("alfa_kade_cart");
+
+    if (!raw) {
+      return [];
+    }
+
+    const parsed = JSON.parse(raw);
+
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed.filter(
+      (item) =>
+        item &&
+        typeof item.id === "string" &&
+        typeof item.name === "string" &&
+        Number.isFinite(Number(item.price))
+    );
+  } catch {
+    return [];
+  }
+}
+
+function saveCart(cart: CartItem[]) {
+  localStorage.setItem(
+    "alfa_kade_cart",
+    JSON.stringify(cart)
+  );
+
+  window.dispatchEvent(
+    new Event("alfa-kade-cart-updated")
+  );
+}
+
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [selectedProduct, setSelectedProduct] =
+    useState<Product | null>(null);
   const [offers, setOffers] = useState<Offer[]>([]);
   const [loading, setLoading] = useState(true);
-  const [offersLoading, setOffersLoading] = useState(false);
+  const [offersLoading, setOffersLoading] =
+    useState(false);
   const [search, setSearch] = useState("");
+  const [cartCount, setCartCount] = useState(0);
+  const [addedToCart, setAddedToCart] =
+    useState(false);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(
+      window.location.search
+    );
+
     const slug = params.get("slug");
 
     async function loadProducts() {
@@ -64,18 +125,23 @@ export default function ProductsPage() {
       const { data, error } = await supabase
         .from("products")
         .select("id, title, slug, image_url")
-        .order("created_at", { ascending: false });
+        .order("created_at", {
+          ascending: false,
+        });
 
       if (!error && data) {
         setProducts(data);
       }
 
       if (slug) {
-        const { data: productData } = await supabase
-          .from("products")
-          .select("id, title, slug, image_url")
-          .eq("slug", slug)
-          .single();
+        const { data: productData } =
+          await supabase
+            .from("products")
+            .select(
+              "id, title, slug, image_url"
+            )
+            .eq("slug", slug)
+            .single();
 
         if (productData) {
           setSelectedProduct(productData);
@@ -87,28 +153,35 @@ export default function ProductsPage() {
     }
 
     async function loadOffers(productId: string) {
-      if (!supabase) return;
+      if (!supabase) {
+        return;
+      }
 
       setOffersLoading(true);
 
-      const { data, error } = await supabase
-        .from("offers")
-        .select(`
-          id,
-          price,
-          seller_url,
-          source_type,
-          seller:sellers (
-            name,
-            phone,
-            website
-          )
-        `)
-        .eq("product_id", productId)
-        .order("price", { ascending: true });
+      const { data, error } =
+        await supabase
+          .from("offers")
+          .select(`
+            id,
+            price,
+            seller_url,
+            source_type,
+            seller:sellers (
+              name,
+              phone,
+              website
+            )
+          `)
+          .eq("product_id", productId)
+          .order("price", {
+            ascending: true,
+          });
 
       if (!error && data) {
-        setOffers(data as unknown as Offer[]);
+        setOffers(
+          data as unknown as Offer[]
+        );
       }
 
       setOffersLoading(false);
@@ -117,25 +190,173 @@ export default function ProductsPage() {
     loadProducts();
   }, []);
 
-  const filteredProducts = products.filter((product) =>
-    product.title.toLowerCase().includes(search.toLowerCase())
-  );
+  useEffect(() => {
+    function updateCartCount() {
+      const cart = loadCart();
+
+      const count = cart.reduce(
+        (sum, item) =>
+          sum + Number(item.quantity || 0),
+        0
+      );
+
+      setCartCount(count);
+    }
+
+    updateCartCount();
+
+    window.addEventListener(
+      "alfa-kade-cart-updated",
+      updateCartCount
+    );
+
+    window.addEventListener(
+      "storage",
+      updateCartCount
+    );
+
+    return () => {
+      window.removeEventListener(
+        "alfa-kade-cart-updated",
+        updateCartCount
+      );
+
+      window.removeEventListener(
+        "storage",
+        updateCartCount
+      );
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!selectedProduct || offers.length === 0) {
+      setAddedToCart(false);
+      return;
+    }
+
+    const cheapestOffer = offers[0];
+
+    const cart = loadCart();
+
+    const exists = cart.some(
+      (item) => item.id === cheapestOffer.id
+    );
+
+    setAddedToCart(exists);
+  }, [selectedProduct, offers]);
+
+  function addCheapestOfferToCart() {
+    if (
+      !selectedProduct ||
+      offers.length === 0
+    ) {
+      return;
+    }
+
+    const cheapestOffer = offers[0];
+
+    const existingCart = loadCart();
+
+    const existingIndex =
+      existingCart.findIndex(
+        (item) => item.id === cheapestOffer.id
+      );
+
+    let updatedCart: CartItem[];
+
+    if (existingIndex >= 0) {
+      updatedCart = existingCart.map(
+        (item, index) =>
+          index === existingIndex
+            ? {
+                ...item,
+                quantity:
+                  item.quantity + 1,
+              }
+            : item
+      );
+    } else {
+      updatedCart = [
+        ...existingCart,
+        {
+          id: cheapestOffer.id,
+          name: selectedProduct.title,
+          price: Number(
+            cheapestOffer.price
+          ),
+          image:
+            selectedProduct.image_url ||
+            "",
+          seller:
+            cheapestOffer.seller?.name ||
+            "فروشنده",
+          quantity: 1,
+        },
+      ];
+    }
+
+    saveCart(updatedCart);
+    setAddedToCart(true);
+    setCartCount(
+      updatedCart.reduce(
+        (sum, item) =>
+          sum + item.quantity,
+        0
+      )
+    );
+  }
+
+  const filteredProducts =
+    products.filter((product) =>
+      product.title
+        .toLowerCase()
+        .includes(search.toLowerCase())
+    );
 
   if (selectedProduct) {
     return (
       <main className="min-h-screen bg-[#070707] px-4 py-8 md:py-12">
         <div className="mx-auto max-w-6xl">
 
-          <button
-            onClick={() => {
-              setSelectedProduct(null);
-              window.history.pushState({}, "", "/products");
-            }}
-            className="mb-6 inline-flex items-center gap-2 text-sm text-gray-500 transition hover:text-[#d8aa4d]"
-          >
-            <ArrowRight size={18} />
-            بازگشت به همه محصولات
-          </button>
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedProduct(null);
+                setOffers([]);
+                setAddedToCart(false);
+
+                window.history.pushState(
+                  {},
+                  "",
+                  "/ALFA-KADE/products"
+                );
+              }}
+              className="inline-flex items-center gap-2 text-sm text-gray-500 transition hover:text-[#d8aa4d]"
+            >
+              <ArrowRight size={18} />
+              بازگشت به همه محصولات
+            </button>
+
+            <Link
+              href="/cart"
+              className="relative flex items-center gap-2 rounded-xl border border-[#d8aa4d]/50 bg-[#d8aa4d]/10 px-4 py-3 text-sm font-bold text-[#e8c875] transition hover:bg-[#d8aa4d]/20"
+            >
+              <ShoppingCart
+                size={18}
+              />
+              سبد خرید
+
+              {cartCount > 0 && (
+                <span
+                  dir="ltr"
+                  className="flex h-6 min-w-6 items-center justify-center rounded-full bg-[#d8aa4d] px-1.5 text-xs font-black text-black"
+                >
+                  {cartCount}
+                </span>
+              )}
+            </Link>
+          </div>
 
           <section className="overflow-hidden rounded-3xl border border-[#2d2414] bg-[#0c0c0c]">
             <div className="grid gap-8 p-6 md:grid-cols-[280px_1fr] md:p-10">
@@ -143,8 +364,12 @@ export default function ProductsPage() {
               <div className="flex min-h-[260px] items-center justify-center rounded-2xl border border-[#2d2414] bg-[#090909] p-5">
                 {selectedProduct.image_url ? (
                   <img
-                    src={selectedProduct.image_url}
-                    alt={selectedProduct.title}
+                    src={
+                      selectedProduct.image_url
+                    }
+                    alt={
+                      selectedProduct.title
+                    }
                     className="max-h-64 max-w-full rounded-xl object-contain"
                   />
                 ) : (
@@ -155,6 +380,7 @@ export default function ProductsPage() {
               </div>
 
               <div className="flex flex-col justify-center">
+
                 <div className="mb-3 text-sm font-bold text-[#d8aa4d]">
                   ALFA KADE
                 </div>
@@ -164,11 +390,11 @@ export default function ProductsPage() {
                 </h1>
 
                 <p className="mt-4 text-sm leading-7 text-gray-500">
-                  قیمت این محصول را از فروشندگان مختلف مقایسه کنید و بهترین
-                  پیشنهاد را انتخاب کنید.
+                  قیمت این محصول را از فروشندگان مختلف مقایسه کنید و بهترین پیشنهاد را انتخاب کنید.
                 </p>
 
                 <div className="mt-6 flex flex-wrap gap-3">
+
                   <div className="rounded-xl border border-[#2d2414] bg-[#11100d] px-4 py-3 text-sm text-gray-300">
                     تعداد فروشندگان:{" "}
                     <span className="font-bold text-[#d8aa4d]">
@@ -180,11 +406,36 @@ export default function ProductsPage() {
                     <div className="rounded-xl border border-[#2d2414] bg-[#11100d] px-4 py-3 text-sm text-gray-300">
                       شروع قیمت از:{" "}
                       <span className="font-bold text-[#d8aa4d]">
-                        {formatPrice(offers[0].price)} تومان
+                        {formatPrice(
+                          offers[0].price
+                        )}{" "}
+                        تومان
                       </span>
                     </div>
                   )}
                 </div>
+
+                {offers.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={
+                      addCheapestOfferToCart
+                    }
+                    className="mt-6 flex w-full items-center justify-center gap-3 rounded-xl border border-[#d8aa4d] bg-[#d8aa4d] px-5 py-4 font-black text-black shadow-lg shadow-[#d8aa4d]/10 transition hover:bg-[#e8bd65] md:w-fit"
+                  >
+                    {addedToCart ? (
+                      <>
+                        <Check size={21} />
+                        به سبد خرید اضافه شد
+                      </>
+                    ) : (
+                      <>
+                        <ShoppingCart size={21} />
+                        افزودن ارزان‌ترین پیشنهاد به سبد خرید
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
             </div>
           </section>
@@ -196,10 +447,14 @@ export default function ProductsPage() {
 
             {offersLoading ? (
               <div className="flex justify-center py-16 text-[#d8aa4d]">
-                <Loader2 className="animate-spin" size={28} />
+                <Loader2
+                  className="animate-spin"
+                  size={28}
+                />
               </div>
             ) : offers.length === 0 ? (
               <div className="rounded-3xl border border-dashed border-[#3a2e18] bg-[#0c0c0c] px-5 py-14 text-center">
+
                 <Store
                   size={40}
                   className="mx-auto mb-4 text-[#d8aa4d]"
@@ -212,61 +467,110 @@ export default function ProductsPage() {
                 <Link
                   href="/products/register"
                   className="mt-6 inline-block rounded-xl px-6 py-3 text-sm font-bold text-black"
-                  style={{ background: "#d8aa4d" }}
+                  style={{
+                    background:
+                      "#d8aa4d",
+                  }}
                 >
                   ثبت قیمت محصول
                 </Link>
               </div>
             ) : (
               <div className="space-y-3">
-                {offers.map((offer, index) => (
-                  <div
-                    key={offer.id}
-                    className="rounded-2xl border border-[#2d2414] bg-[#0c0c0c] p-5"
-                  >
-                    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
 
-                      <div className="flex items-center gap-4">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#17130c] text-[#d8aa4d]">
-                          <Store size={22} />
+                {offers.map(
+                  (offer, index) => (
+                    <div
+                      key={offer.id}
+                      className="rounded-2xl border border-[#2d2414] bg-[#0c0c0c] p-5"
+                    >
+                      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+
+                        <div className="flex items-center gap-4">
+
+                          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#17130c] text-[#d8aa4d]">
+                            <Store size={22} />
+                          </div>
+
+                          <div>
+                            <div className="font-bold text-white">
+                              {offer.seller?.name ||
+                                "فروشنده"}
+                            </div>
+
+                            <div className="mt-1 text-xs text-gray-500">
+                              {index === 0
+                                ? "ارزان‌ترین پیشنهاد"
+                                : `پیشنهاد شماره ${
+                                    index + 1
+                                  }`}
+                            </div>
+                          </div>
                         </div>
 
                         <div>
-                          <div className="font-bold text-white">
-                            {offer.seller?.name || "فروشنده"}
-                          </div>
+                          <div className="text-2xl font-black text-[#d8aa4d]">
+                            {formatPrice(
+                              offer.price
+                            )}
 
-                          <div className="mt-1 text-xs text-gray-500">
-                            {index === 0
-                              ? "ارزان‌ترین پیشنهاد"
-                              : `پیشنهاد شماره ${index + 1}`}
+                            <span className="mr-1 text-xs font-normal text-gray-500">
+                              تومان
+                            </span>
                           </div>
                         </div>
-                      </div>
 
-                      <div>
-                        <div className="text-2xl font-black text-[#d8aa4d]">
-                          {formatPrice(offer.price)}
-                          <span className="mr-1 text-xs font-normal text-gray-500">
-                            تومان
-                          </span>
+                        <div className="flex flex-wrap gap-2">
+
+                          {index === 0 && (
+                            <button
+                              type="button"
+                              onClick={
+                                addCheapestOfferToCart
+                              }
+                              className="flex items-center justify-center gap-2 rounded-xl bg-[#d8aa4d] px-4 py-2.5 text-sm font-bold text-black transition hover:bg-[#e8bd65]"
+                            >
+                              {addedToCart ? (
+                                <>
+                                  <Check
+                                    size={17}
+                                  />
+                                  اضافه شد
+                                </>
+                              ) : (
+                                <>
+                                  <ShoppingCart
+                                    size={17}
+                                  />
+                                  افزودن به سبد
+                                </>
+                              )}
+                            </button>
+                          )}
+
+                          {(offer.seller_url ||
+                            offer.seller
+                              ?.website) && (
+                            <a
+                              href={
+                                offer.seller_url ||
+                                offer.seller
+                                  ?.website ||
+                                "#"
+                              }
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="rounded-xl border border-[#3a2e18] px-4 py-2.5 text-sm text-gray-300 transition hover:border-[#d8aa4d] hover:text-[#d8aa4d]"
+                            >
+                              مشاهده سایت
+                            </a>
+                          )}
                         </div>
                       </div>
-
-                      {(offer.seller_url || offer.seller?.website) && (
-                        <a
-                          href={offer.seller_url || offer.seller?.website || "#"}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="rounded-xl border border-[#3a2e18] px-4 py-2.5 text-sm text-gray-300 hover:border-[#d8aa4d] hover:text-[#d8aa4d]"
-                        >
-                          مشاهده سایت
-                        </a>
-                      )}
-
                     </div>
-                  </div>
-                ))}
+                  )
+                )}
+
               </div>
             )}
           </section>
@@ -279,45 +583,79 @@ export default function ProductsPage() {
     <main className="min-h-screen bg-[#070707] px-4 py-8 md:py-12">
       <div className="mx-auto max-w-6xl">
 
-        <div className="mb-8">
-          <h1 className="text-3xl font-black text-white md:text-4xl">
-            همه محصولات
-          </h1>
+        <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
 
-          <p className="mt-3 text-gray-500">
-            دسته‌بندی و محصولات موردنظر خود را پیدا کنید.
-          </p>
+          <div>
+            <h1 className="text-3xl font-black text-white md:text-4xl">
+              همه محصولات
+            </h1>
+
+            <p className="mt-3 text-gray-500">
+              دسته‌بندی و محصولات موردنظر خود را پیدا کنید.
+            </p>
+          </div>
+
+          <Link
+            href="/cart"
+            className="relative flex items-center gap-2 rounded-xl border border-[#d8aa4d]/50 bg-[#d8aa4d]/10 px-4 py-3 font-bold text-[#e8c875] transition hover:bg-[#d8aa4d]/20"
+          >
+            <ShoppingCart size={20} />
+            سبد خرید
+
+            {cartCount > 0 && (
+              <span
+                dir="ltr"
+                className="flex h-6 min-w-6 items-center justify-center rounded-full bg-[#d8aa4d] px-1.5 text-xs font-black text-black"
+              >
+                {cartCount}
+              </span>
+            )}
+          </Link>
         </div>
 
         <div className="mb-8 flex items-center gap-3 rounded-2xl border border-[#2d2414] bg-[#0c0c0c] px-4 py-3">
-          <Search size={20} className="text-[#d8aa4d]" />
+          <Search
+            size={20}
+            className="text-[#d8aa4d]"
+          />
 
           <input
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) =>
+              setSearch(e.target.value)
+            }
             placeholder="جستجوی محصول..."
             className="w-full bg-transparent text-white outline-none placeholder:text-gray-600"
           />
         </div>
 
         <div className="mb-10 grid grid-cols-2 gap-3 md:grid-cols-4">
-          {categories.map((category) => (
-            <Link
-              key={category}
-              href={`/search?q=${encodeURIComponent(category)}`}
-              className="rounded-2xl border border-[#2d2414] bg-[#0c0c0c] p-4 text-center text-sm font-bold text-gray-300 transition hover:border-[#d8aa4d] hover:text-[#d8aa4d]"
-            >
-              {category}
-            </Link>
-          ))}
+          {categories.map(
+            (category) => (
+              <Link
+                key={category}
+                href={`/search?q=${encodeURIComponent(
+                  category
+                )}`}
+                className="rounded-2xl border border-[#2d2414] bg-[#0c0c0c] p-4 text-center text-sm font-bold text-gray-300 transition hover:border-[#d8aa4d] hover:text-[#d8aa4d]"
+              >
+                {category}
+              </Link>
+            )
+          )}
         </div>
 
         {loading ? (
           <div className="flex justify-center py-20 text-[#d8aa4d]">
-            <Loader2 className="animate-spin" size={30} />
+            <Loader2
+              className="animate-spin"
+              size={30}
+            />
           </div>
-        ) : filteredProducts.length === 0 ? (
+        ) : filteredProducts.length ===
+          0 ? (
           <div className="rounded-3xl border border-dashed border-[#3a2e18] bg-[#0c0c0c] px-5 py-16 text-center">
+
             <Search
               size={40}
               className="mx-auto mb-4 text-[#d8aa4d]"
@@ -334,52 +672,75 @@ export default function ProductsPage() {
             <Link
               href="/products/register"
               className="mt-6 inline-block rounded-xl px-6 py-3 text-sm font-bold text-black"
-              style={{ background: "#d8aa4d" }}
+              style={{
+                background:
+                  "#d8aa4d",
+              }}
             >
               ثبت محصول
             </Link>
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {filteredProducts.map((product) => (
-              <button
-                key={product.id}
-                onClick={() => {
-                  setSelectedProduct(product);
-                  window.history.pushState(
-                    {},
-                    "",
-                    `/products?slug=${encodeURIComponent(product.slug)}`
-                  );
-                }}
-                className="overflow-hidden rounded-2xl border border-[#2d2414] bg-[#0c0c0c] text-right transition hover:border-[#d8aa4d]"
-              >
-                <div className="flex h-48 items-center justify-center bg-[#090909] p-4">
-                  {product.image_url ? (
-                    <img
-                      src={product.image_url}
-                      alt={product.title}
-                      className="max-h-full max-w-full object-contain"
-                    />
-                  ) : (
-                    <Store className="text-[#80652f]" size={40} />
-                  )}
-                </div>
 
-                <div className="p-4">
-                  <h3 className="font-bold leading-7 text-white">
-                    {product.title}
-                  </h3>
+            {filteredProducts.map(
+              (product) => (
+                <button
+                  key={product.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedProduct(
+                      product
+                    );
 
-                  <div className="mt-3 text-xs text-gray-500">
-                    مشاهده قیمت فروشندگان
+                    window.history.pushState(
+                      {},
+                      "",
+                      `/ALFA-KADE/products?slug=${encodeURIComponent(
+                        product.slug
+                      )}`
+                    );
+                  }}
+                  className="overflow-hidden rounded-2xl border border-[#2d2414] bg-[#0c0c0c] text-right transition hover:border-[#d8aa4d]"
+                >
+                  <div className="flex h-48 items-center justify-center bg-[#090909] p-4">
+
+                    {product.image_url ? (
+                      <img
+                        src={
+                          product.image_url
+                        }
+                        alt={
+                          product.title
+                        }
+                        className="max-h-full max-w-full object-contain"
+                      />
+                    ) : (
+                      <Store
+                        className="text-[#80652f]"
+                        size={40}
+                      />
+                    )}
+
                   </div>
-                </div>
-              </button>
-            ))}
+
+                  <div className="p-4">
+                    <h3 className="font-bold leading-7 text-white">
+                      {product.title}
+                    </h3>
+
+                    <div className="mt-3 text-xs text-gray-500">
+                      مشاهده قیمت فروشندگان
+                    </div>
+                  </div>
+                </button>
+              )
+            )}
+
           </div>
         )}
       </div>
     </main>
   );
-          }
+}
+```0
